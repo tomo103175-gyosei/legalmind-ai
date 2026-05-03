@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2026-04-22.dahlia",

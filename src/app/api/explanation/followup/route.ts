@@ -3,6 +3,8 @@ import { GoogleGenAI } from '@google/genai';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/utils/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });

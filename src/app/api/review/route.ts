@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { calculateSM2 } from '@/lib/sm2';
 import { createClient } from '@/utils/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
