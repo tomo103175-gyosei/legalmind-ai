@@ -3,10 +3,9 @@ import { GoogleGenAI } from '@google/genai';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/utils/supabase/server';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export async function POST(req: Request) {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
