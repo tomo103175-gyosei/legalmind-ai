@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id         String      @id @default(cuid())
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  email      String?     @unique
+  name       String?
+  questions  Question[]
+  reviewLogs ReviewLog[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // OCR Extracted Data
+  originalImage String?
+  questionText  String
+  optionsJson   String
+
+  // AI Generated Data
+  correctAnswer String?
+  explanation   String?
+
+  // Spaced Repetition Data (SM-2 basics)
+  repetition     Int      @default(0)
+  interval       Int      @default(0)
+  easinessFactor Float    @default(2.5)
+  nextReviewDate DateTime @default(now())
+
+  userId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs   ReviewLog[]
+}
+
+model ReviewLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  quality  Int // SM-2 performance rating (0-5)
+  interval Int
+}
