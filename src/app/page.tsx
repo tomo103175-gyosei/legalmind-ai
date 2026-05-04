@@ -9,19 +9,31 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let dueCount = 0;
+  let dbError = null;
   if (user) {
-    dueCount = await prisma.question.count({
-      where: {
-        userId: user.id,
-        nextReviewDate: {
-          lte: new Date()
+    try {
+      dueCount = await prisma.question.count({
+        where: {
+          userId: user.id,
+          nextReviewDate: {
+            lte: new Date()
+          }
         }
-      }
-    });
+      });
+    } catch (e: any) {
+      dbError = e.message;
+      console.error("Prisma error in Home:", e);
+    }
   }
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
+      {dbError && (
+        <div style={{ background: "red", color: "white", padding: "1rem", borderRadius: "8px", overflowX: "auto" }}>
+          <strong>Database Connection Error:</strong>
+          <pre style={{ fontSize: "0.8rem", marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{dbError}</pre>
+        </div>
+      )}
       {/* Hero Section */}
       <section className="glass-card" style={{ textAlign: "center", padding: "4rem 2rem", background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.1), transparent)" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: "900", marginBottom: "1.5rem", lineHeight: "1.3" }}>
