@@ -32,9 +32,6 @@ export default async function Home() {
         <div style={{ background: "red", color: "white", padding: "1rem", borderRadius: "8px", overflowX: "auto" }}>
           <strong>Database Connection Error:</strong>
           <pre style={{ fontSize: "0.8rem", marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{dbError}</pre>
-          <div style={{ marginTop: "1rem", fontSize: "0.8rem", background: "rgba(0,0,0,0.5)", padding: "0.5rem" }}>
-            Debug - Current DATABASE_URL starts with: {process.env.DATABASE_URL?.substring(0, 45)}...
-          </div>
         </div>
       )}
       {/* Hero Section */}
