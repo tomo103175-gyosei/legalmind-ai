@@ -45,6 +45,7 @@ export default function StudyPage() {
   const [loading, setLoading] = useState(true);
   const [allQuestions, setAllQuestions] = useState<any[]>([]);
   const [allLoading, setAllLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [followUps, setFollowUps] = useState<{role: 'user'|'ai', text: string}[]>([]);
@@ -68,6 +69,26 @@ export default function StudyPage() {
         setAllQuestions(data.questions || []);
       })
       .finally(() => setAllLoading(false));
+  };
+
+  const handleDeleteQuestion = async (id: string) => {
+    const ok = confirm("この問題を削除しますか？（復習履歴も消えます）");
+    if (!ok) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/questions/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "削除に失敗しました");
+      setAllQuestions((prev) => prev.filter((q) => q.id !== id));
+      // もし今日の出題中リストにも含まれていたら除外
+      setQuestions((prev) => prev.filter((q) => q.id !== id));
+      fetchSchedule();
+    } catch (e: any) {
+      console.error(e);
+      alert(`エラー: ${e.message}`);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   useEffect(() => {
@@ -327,6 +348,21 @@ export default function StudyPage() {
                   </summary>
 
                   <div style={{ marginTop: "1rem", cursor: "auto" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                      <button
+                        className="btn btn-outline"
+                        style={{ borderColor: "rgba(239, 68, 68, 0.6)", color: "rgba(239, 68, 68, 1)" }}
+                        disabled={deletingId === item.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteQuestion(item.id);
+                        }}
+                      >
+                        {deletingId === item.id ? "削除中..." : "この問題を削除"}
+                      </button>
+                    </div>
+
                     {itemOptions.length > 0 && (
                       <div style={{ marginBottom: "1rem" }}>
                         <div style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>選択肢</div>
