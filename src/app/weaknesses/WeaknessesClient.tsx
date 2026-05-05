@@ -11,12 +11,16 @@ type WeakQuestion = {
 
 export default function WeaknessesClient({ initialQuestions }: { initialQuestions: WeakQuestion[] }) {
   const [questions, setQuestions] = useState<WeakQuestion[]>(initialQuestions || []);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [loadingExp, setLoadingExp] = useState(false);
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(questions[0]?.id ?? null);
+  const [selectedOptionById, setSelectedOptionById] = useState<Record<string, number | null>>({});
+  const [explanationById, setExplanationById] = useState<Record<string, string | null>>({});
+  const [loadingExpById, setLoadingExpById] = useState<Record<string, boolean>>({});
+  const [submittingReviewById, setSubmittingReviewById] = useState<Record<string, boolean>>({});
 
-  const q = questions[0];
+  const q = useMemo(() => {
+    if (!selectedQuestionId) return null;
+    return questions.find((x) => x.id === selectedQuestionId) ?? null;
+  }, [questions, selectedQuestionId]);
 
   const options = useMemo(() => {
     if (!q) return [];
@@ -29,8 +33,11 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   }, [q]);
 
   const handleSubmit = async () => {
-    if (!q || selectedOption === null) return;
-    setLoadingExp(true);
+    if (!q) return;
+    const selectedOption = selectedOptionById[q.id] ?? null;
+    if (selectedOption === null) return;
+
+    setLoadingExpById((prev) => ({ ...prev, [q.id]: true }));
     try {
       const res = await fetch("/api/explanation", {
         method: "POST",
@@ -44,18 +51,21 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "解説の生成に失敗しました");
-      setExplanation(data.explanation || "解説を生成できませんでした。");
+      setExplanationById((prev) => ({
+        ...prev,
+        [q.id]: data.explanation || "解説を生成できませんでした。",
+      }));
     } catch (e: any) {
       console.error(e);
       alert(`エラー: ${e.message}`);
     } finally {
-      setLoadingExp(false);
+      setLoadingExpById((prev) => ({ ...prev, [q.id]: false }));
     }
   };
 
   const handleReview = async (quality: number) => {
     if (!q) return;
-    setSubmittingReview(true);
+    setSubmittingReviewById((prev) => ({ ...prev, [q.id]: true }));
     try {
       const res = await fetch("/api/review", {
         method: "POST",
@@ -65,18 +75,30 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "復習結果の保存に失敗しました");
 
-      setQuestions((prev) => prev.slice(1));
-      setSelectedOption(null);
-      setExplanation(null);
+      setQuestions((prev) => {
+        const next = prev.filter((x) => x.id !== q.id);
+        // 削除した問題が選択中だったら、次の問題を自動選択
+        if (selectedQuestionId === q.id) {
+          setSelectedQuestionId(next[0]?.id ?? null);
+        }
+        return next;
+      });
+      setSelectedOptionById((prev) => ({ ...prev, [q.id]: null }));
+      setExplanationById((prev) => ({ ...prev, [q.id]: null }));
     } catch (e: any) {
       console.error(e);
       alert(`エラー: ${e.message}`);
     } finally {
-      setSubmittingReview(false);
+      setSubmittingReviewById((prev) => ({ ...prev, [q.id]: false }));
     }
   };
 
-  if (!q) {
+  const selectedOption = q ? selectedOptionById[q.id] ?? null : null;
+  const explanation = q ? explanationById[q.id] ?? null : null;
+  const loadingExp = q ? !!loadingExpById[q.id] : false;
+  const submittingReview = q ? !!submittingReviewById[q.id] : false;
+
+  if (!questions || questions.length === 0) {
     return (
       <div className="glass-card animate-fade-in" style={{ textAlign: "center", padding: "3rem 1rem" }}>
         <p style={{ color: "var(--success-color)", fontSize: "1.1rem", marginBottom: "1rem" }}>🎉 苦手ノートの復習は完了しました！</p>
@@ -85,8 +107,44 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
     );
   }
 
+  if (!q) {
+    return (
+      <div className="glass-card animate-fade-in" style={{ textAlign: "center", padding: "3rem 1rem" }}>
+        <p style={{ color: "var(--text-muted)" }}>問題を選択してください。</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="glass-card animate-fade-in" style={{ padding: "1.5rem" }}>
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="glass-card" style={{ padding: "1rem" }}>
+        <h4 style={{ fontSize: "1rem", margin: "0 0 0.75rem 0" }}>一覧（クリックして選択）</h4>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {questions.map((item, idx) => {
+            const active = item.id === selectedQuestionId;
+            return (
+              <button
+                key={item.id}
+                className={active ? "btn btn-primary" : "btn btn-outline"}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  justifyContent: "flex-start",
+                  padding: "0.75rem 1rem",
+                  whiteSpace: "normal",
+                  lineHeight: "1.4",
+                }}
+                onClick={() => setSelectedQuestionId(item.id)}
+                disabled={submittingReview}
+              >
+                {idx + 1}. {item.questionText}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
         <h3 style={{ fontSize: "1.1rem", lineHeight: "1.6", margin: 0 }}>{q.questionText}</h3>
         <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", marginTop: "4px" }}>
@@ -111,7 +169,7 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
               type="radio"
               name="weakness-option"
               style={{ marginRight: "0.5rem" }}
-              onChange={() => setSelectedOption(i)}
+              onChange={() => setSelectedOptionById((prev) => ({ ...prev, [q.id]: i }))}
               checked={selectedOption === i}
               disabled={loadingExp || submittingReview}
             />
@@ -169,6 +227,7 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
