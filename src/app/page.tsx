@@ -36,7 +36,7 @@ export default async function Home() {
       )}
       {/* Hero Section */}
       <section className="glass-card" style={{ textAlign: "center", padding: "4rem 2rem", background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.1), transparent)" }}>
-        <h1 style={{ fontSize: "2.7rem", fontWeight: "900", marginBottom: "1.5rem", lineHeight: "1.3" }}>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: "900", marginBottom: "1.5rem", lineHeight: "1.3" }}>
           スマホで撮るだけ。<br/>
           AIが作る「あなた専用」の弱点克服システム。
         </h1>
