@@ -1,16 +1,47 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function WeaknessesPage() {
-  const weakQuestions = await prisma.question.findMany({
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return (
+      <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "2rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1.5rem" }}>📓 苦手ノート</h2>
+          <Link href="/" className="btn btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.9rem" }}>← トップへ</Link>
+        </div>
+
+        <div className="glass-card animate-fade-in" style={{ textAlign: "center", padding: "3rem 1rem" }}>
+          <p style={{ color: "var(--text-muted)" }}>苦手ノートを見るにはログインしてください。</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 「間違えた問題」= レビュー品質が低い(0-2)ものを抽出
+  // distinctにより同一問題は最新の失敗ログだけ拾う
+  const wrongLogs = await prisma.reviewLog.findMany({
     where: {
-      userId: "test-user",
-      easinessFactor: { lt: 2.5 }
+      userId: user.id,
+      quality: { lte: 2 },
     },
-    orderBy: { easinessFactor: 'asc' }
+    orderBy: { createdAt: "desc" },
+    distinct: ["questionId"],
+    include: {
+      question: true,
+    },
   });
+
+  const wrongQuestions = wrongLogs
+    .map((l) => l.question)
+    .filter(Boolean);
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "2rem" }}>
@@ -19,17 +50,17 @@ export default async function WeaknessesPage() {
          <Link href="/" className="btn btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.9rem" }}>← トップへ</Link>
       </div>
       
-      {weakQuestions.length === 0 ? (
+      {wrongQuestions.length === 0 ? (
         <div className="glass-card animate-fade-in" style={{ textAlign: "center", padding: "3rem 1rem" }}>
-          <p style={{ color: "var(--success-color)", fontSize: "1.1rem", marginBottom: "1rem" }}>🎉 現在、苦手と判定されている問題はありません！</p>
-          <p style={{ color: "var(--text-muted)" }}>日々の学習の成果が出ています。この調子でいきましょう！</p>
+          <p style={{ color: "var(--success-color)", fontSize: "1.1rem", marginBottom: "1rem" }}>🎉 まだ「間違えた問題」はありません！</p>
+          <p style={{ color: "var(--text-muted)" }}>学習で「忘れた(0) / 難しい(2)」を選ぶと、ここに表示されます。</p>
         </div>
       ) : (
         <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <p style={{ color: "var(--text-muted)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>
-            SM-2アルゴリズムによって「苦手」と判定された問題（全 {weakQuestions.length} 問）を、苦手度が高い順に表示しています。クリックして解説を確認できます。
+            「忘れた(0) / 難しい(2)」など、理解度が低かった問題（全 {wrongQuestions.length} 問）を表示しています。クリックして内容を確認できます。
           </p>
-          {weakQuestions.map((q) => {
+          {wrongQuestions.map((q) => {
             let options = [];
             try {
                options = JSON.parse(q.optionsJson);
