@@ -40,6 +40,19 @@ function extractKanaOptionsFromText(fullTextRaw: string) {
   return null;
 }
 
+function kanaOptionsToQuestionText(stemRaw: string, kanaOptions: string[]) {
+  const stem = (stemRaw || "").trim();
+  const labels = ["ア", "イ", "ウ", "エ", "オ"];
+  const lines: string[] = [];
+  if (stem) lines.push(stem);
+  for (let i = 0; i < kanaOptions.length && i < labels.length; i++) {
+    const body = (kanaOptions[i] || "").trim();
+    if (!body) continue;
+    lines.push(`${labels[i]} ${body}`);
+  }
+  return lines.join("\n");
+}
+
 function normalizeOptionsArray(raw: any) {
   if (!Array.isArray(raw)) return null;
   const cleaned = raw
@@ -70,9 +83,9 @@ export async function POST(req: Request) {
       
       IMPORTANT:
       - If the problem statement contains options labeled ア〜エ or ア〜オ, then:
-        - "questionText" MUST end right before the first option label (ア...).
-        - "optionsJson" MUST be an array of 4 or 5 option strings in order (1〜4 or 1〜5).
-        - Remove the leading labels (ア/イ/ウ/エ/オ) from each option string.
+        - The statements ア〜エ/オ are part of the questionText (include them up to エ or オ).
+        - "optionsJson" MUST remain ["1","2","3","4","5"].
+        - Do NOT treat ア〜エ/オ as selectable options.
       Format the output strictly as a JSON object with this exact structure:
       {
         "questionText": "The main text of the question",
@@ -109,7 +122,9 @@ export async function POST(req: Request) {
       jsonData = { error: "Failed to parse JSON correctly.", raw: textResponse };
     }
 
-    // Post-process: if options are embedded in questionText with ア〜エ/オ, split them.
+    // Post-process:
+    // - If questionText contains ア〜エ/オ statements, keep them in questionText and force optionsJson to ["1".."5"].
+    // - If the model mistakenly put ア〜エ/オ into optionsJson, move them back into questionText.
     if (!jsonData?.error) {
       const qt = typeof jsonData.questionText === "string" ? jsonData.questionText : "";
       const normalizedOptions = normalizeOptionsArray(jsonData.optionsJson);
@@ -117,12 +132,26 @@ export async function POST(req: Request) {
       if (qt) {
         const extracted = extractKanaOptionsFromText(qt);
         if (extracted) {
-          jsonData.questionText = extracted.questionText;
-          jsonData.optionsJson = extracted.options;
-        } else if (normalizedOptions) {
-          jsonData.optionsJson = normalizedOptions;
+          // qt already contains ア〜 statements; keep as-is but normalize options to 1..5.
+          jsonData.questionText = qt.trim();
+          jsonData.optionsJson = ["1", "2", "3", "4", "5"];
+        } else {
+          // If optionsJson looks like it contains ア〜 statements, fold them into questionText.
+          if (normalizedOptions && normalizedOptions.length >= 4) {
+            const looksKana = normalizedOptions.some((s) => /^\s*[ア-オ]\s*/u.test(s));
+            if (looksKana) {
+              const cleanedKana = normalizedOptions.map((s) =>
+                s.replace(/^\s*[ア-オ]\s*[\.．、:：\)]?\s*/u, "").trim()
+              );
+              jsonData.questionText = kanaOptionsToQuestionText(qt, cleanedKana);
+              jsonData.optionsJson = ["1", "2", "3", "4", "5"];
+            } else {
+              jsonData.optionsJson = normalizedOptions;
+            }
+          }
         }
       } else if (normalizedOptions) {
+        // No questionText; best-effort normalize options
         jsonData.optionsJson = normalizedOptions;
       }
     }
