@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import WeaknessesClient from "@/app/weaknesses/WeaknessesClient";
 
 export const dynamic = "force-dynamic";
 
@@ -58,53 +59,9 @@ export default async function WeaknessesPage() {
       ) : (
         <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <p style={{ color: "var(--text-muted)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>
-            「忘れた(0) / 難しい(2)」など、理解度が低かった問題（全 {wrongQuestions.length} 問）を表示しています。クリックして内容を確認できます。
+            「忘れた(0) / 難しい(2)」など、理解度が低かった問題（全 {wrongQuestions.length} 問）を表示しています。ここで解き直しできます。
           </p>
-          {wrongQuestions.map((q) => {
-            let options = [];
-            try {
-               options = JSON.parse(q.optionsJson);
-            } catch (e) {}
-
-            return (
-              <details key={q.id} className="glass-card" style={{ cursor: "pointer", padding: "1.5rem" }}>
-                <summary style={{ fontSize: "1.05rem", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-                   <span style={{ lineHeight: "1.6" }}>{q.questionText}</span>
-                   <span style={{ 
-                     background: "var(--danger-color, #ef4444)", 
-                     color: "white", 
-                     padding: "4px 10px", 
-                     borderRadius: "12px", 
-                     fontSize: "0.8rem", 
-                     whiteSpace: "nowrap",
-                     marginTop: "4px"
-                   }}>
-                     苦手度: 高
-                   </span>
-                </summary>
-                
-                <div style={{ marginTop: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem", cursor: "auto" }}>
-                   <div style={{ marginBottom: "1.5rem" }}>
-                     <h4 style={{ fontSize: "0.95rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>選択肢:</h4>
-                     <ul style={{ listStyleType: "circle", paddingLeft: "1.5rem", color: "var(--text-main)", lineHeight: "1.4" }}>
-                       {options.map((opt: string, i: number) => (
-                         <li key={i} style={{ marginBottom: "0.5rem" }}>{opt}</li>
-                       ))}
-                     </ul>
-                   </div>
-
-                   {q.explanation && (
-                     <div>
-                       <h4 style={{ fontSize: "0.95rem", color: "var(--success-color)", marginBottom: "0.8rem" }}>e-Gov 根拠に基づく解説:</h4>
-                       <div style={{ whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }}>
-                         {q.explanation}
-                       </div>
-                     </div>
-                   )}
-                </div>
-              </details>
-            );
-          })}
+          <WeaknessesClient initialQuestions={wrongQuestions as any} />
         </div>
       )}
     </div>
