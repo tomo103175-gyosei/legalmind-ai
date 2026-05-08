@@ -84,18 +84,20 @@ export async function POST(req: Request) {
       IMPORTANT:
       - If the problem statement contains options labeled ア〜エ or ア〜オ, then:
         - The statements ア〜エ/オ are part of the questionText (include them up to エ or オ).
-        - "optionsJson" MUST remain ["1","2","3","4","5"].
-        - Do NOT treat ア〜エ/オ as selectable options.
+        - ENSURE each statement (ア, イ, ウ, エ, オ) starts on a NEW LINE for readability.
+        - "optionsJson" should contain the selectable labels (usually 1 to 5).
+        - If labels 1 to 5 have associated combination text like "ア・エ" or "アとイ", INCLUDE THAT TEXT in the optionsJson.
+      
       Format the output strictly as a JSON object with this exact structure:
       {
-        "questionText": "The main text of the question",
-        "optionsJson": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
+        "questionText": "The main text of the question (ensure ア, イ, ウ... each start on a new line)",
+        "optionsJson": ["Option 1 text", "Option 2 text", "Option 3 text", "Option 4 text", "Option 5 text"]
       }
       Do not include any markdown backticks or other text. Just the JSON.
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: [
         {
           role: "user",
@@ -123,36 +125,59 @@ export async function POST(req: Request) {
     }
 
     // Post-process:
-    // - If questionText contains ア〜エ/オ statements, keep them in questionText and force optionsJson to ["1".."5"].
-    // - If the model mistakenly put ア〜エ/オ into optionsJson, move them back into questionText.
     if (!jsonData?.error) {
-      const qt = typeof jsonData.questionText === "string" ? jsonData.questionText : "";
-      const normalizedOptions = normalizeOptionsArray(jsonData.optionsJson);
+      let qt = typeof jsonData.questionText === "string" ? jsonData.questionText : "";
+      const optJson = Array.isArray(jsonData.optionsJson) ? jsonData.optionsJson : [];
+
+      // 設問（ア〜オ）ごとに改行を入れるリフォーマット処理
+      if (qt) {
+        // すでに改行されている場合もあるので、一旦正規化してから改行を挿入
+        // 文中の「ア」「イ」などに反応しすぎないよう、行頭またはスペースの後の「ア〜オ + 記号/スペース」にマッチさせる
+        const reformatQt = (text: string) => {
+          const labels = ["ア", "イ", "ウ", "エ", "オ"];
+          let formatted = text;
+          labels.forEach(label => {
+            // 例: 「 イ」「、イ」「。イ」などを「\nイ」に置換
+            // すでに改行がある場合は重複させない
+            const regex = new RegExp(`([^\\n])\\s*(${label}[\\s　\\.．、:：\\)])`, 'g');
+            formatted = formatted.replace(regex, '$1\n$2');
+          });
+          return formatted.trim();
+        };
+        qt = reformatQt(qt);
+        jsonData.questionText = qt;
+      }
+
+      // 組み合わせ問題（「・」や「と」を含む）かどうかをチェック
+      const isCombination = optJson.some((s: string) => 
+        typeof s === "string" && (s.includes("・") || s.includes("と") || /[ア-オ]\s*[・と]\s*[ア-オ]/.test(s))
+      );
 
       if (qt) {
         const extracted = extractKanaOptionsFromText(qt);
         if (extracted) {
-          // qt already contains ア〜 statements; keep as-is but normalize options to 1..5.
-          jsonData.questionText = qt.trim();
-          jsonData.optionsJson = ["1", "2", "3", "4", "5"];
+          // qt already contains ア〜 statements
+          // 組み合わせ問題でない場合のみ、1〜5 に強制置換する（既存の単一選択肢の誤混入防止）
+          if (!isCombination) {
+             const looksLikeNumbers = optJson.every((s: any) => /^\s*\d+\s*$/.test(String(s)));
+             if (!looksLikeNumbers) {
+                jsonData.optionsJson = ["1", "2", "3", "4", "5"];
+             }
+          }
         } else {
           // If optionsJson looks like it contains ア〜 statements, fold them into questionText.
+          const normalizedOptions = normalizeOptionsArray(jsonData.optionsJson);
           if (normalizedOptions && normalizedOptions.length >= 4) {
-            const looksKana = normalizedOptions.some((s) => /^\s*[ア-オ]\s*/u.test(s));
-            if (looksKana) {
+            const looksKana = normalizedOptions.some((s) => /^\s*[ア-オ]\s*$/.test(s));
+            if (looksKana && !isCombination) {
               const cleanedKana = normalizedOptions.map((s) =>
                 s.replace(/^\s*[ア-オ]\s*[\.．、:：\)]?\s*/u, "").trim()
               );
               jsonData.questionText = kanaOptionsToQuestionText(qt, cleanedKana);
               jsonData.optionsJson = ["1", "2", "3", "4", "5"];
-            } else {
-              jsonData.optionsJson = normalizedOptions;
             }
           }
         }
-      } else if (normalizedOptions) {
-        // No questionText; best-effort normalize options
-        jsonData.optionsJson = normalizedOptions;
       }
     }
 
