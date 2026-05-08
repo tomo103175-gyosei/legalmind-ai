@@ -27,6 +27,20 @@ export async function POST(req: Request) {
 
     const optionsParsed = JSON.parse(optionsJson);
 
+    // 判例問題や複雑な形式（組み合わせ、個数）を判定
+    const precedentKeywords = ["判例", "最高裁", "大審院", "決定", "判決", "趣旨", "事件"];
+    const complexKeywords = ["組合せ", "組み合わせ", "個数", "いくつあるか", "正誤の組み合わせ"];
+    
+    const isPrecedent = precedentKeywords.some(k => questionText.includes(k));
+    const isComplex = complexKeywords.some(k => questionText.includes(k));
+    
+    // 判例または難易度が高い場合は gemini-2.5-flash、それ以外は lite を使用
+    const selectedModel = (isPrecedent || isComplex) 
+      ? "gemini-2.5-flash" 
+      : "gemini-2.5-flash-lite";
+
+    console.log(`[Model Selection] Precedent: ${isPrecedent}, Complex: ${isComplex} -> Using ${selectedModel}`);
+
     const prompt = `
       あなたは行政書士試験に特化した最高峰のAIアシスタントです。
       以下の問題テキストと選択肢に基づいて、正確な解説を生成し、正解の番号（1〜5）を特定してください。
@@ -53,7 +67,7 @@ export async function POST(req: Request) {
     `.trim();
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: selectedModel,
       contents: prompt
     });
 
