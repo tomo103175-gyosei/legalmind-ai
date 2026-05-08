@@ -15,18 +15,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-    const isFree = !dbUser || dbUser.plan === "FREE";
-
     const { questionId, questionText, optionsJson, userAnswer } = await req.json();
+
+    // questionId は必須 — 解説は必ずDBに紐付けて保存する
+    if (!questionId) {
+      return NextResponse.json({ error: "questionId is required to save the explanation." }, { status: 400 });
+    }
 
     if (!questionText || !optionsJson) {
       return NextResponse.json({ error: "Missing question content." }, { status: 400 });
     }
 
     const optionsParsed = JSON.parse(optionsJson);
-    
-    let prompt = `
+
+    const prompt = `
       あなたは行政書士試験に特化した最高峰のAIアシスタントです。
       以下の問題テキストと選択肢、そしてユーザーの解答に基づいて、正確な解説を生成してください。
       
@@ -45,18 +47,17 @@ export async function POST(req: Request) {
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-1.5-flash",
       contents: prompt
     });
 
     const explanation = response.text || "No explanation generated.";
 
-    if (questionId) {
-       await prisma.question.update({
-         where: { id: questionId },
-         data: { explanation }
-       });
-    }
+    // 解説を必ずDBに保存する
+    await prisma.question.update({
+      where: { id: questionId },
+      data: { explanation }
+    });
 
     return NextResponse.json({ explanation });
   } catch (error: any) {

@@ -115,6 +115,14 @@ export default function StudyPage() {
 
   const handleSubmit = async () => {
     if (selectedOption === null) return;
+
+    // DBに解説が既に保存されている場合はAPIを呼ばずそのまま表示
+    if (q.explanation) {
+      setExplanation(q.explanation);
+      return;
+    }
+
+    // 未生成の場合のみAIで生成してDBに保存
     setGeneratingExp(true);
     try {
       const res = await fetch("/api/explanation", {
@@ -130,6 +138,8 @@ export default function StudyPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "解説の生成に失敗しました");
       setExplanation(data.explanation);
+      // ローカルのquestionキャッシュにも反映（次の復習で再APIコールを防ぐ）
+      setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, explanation: data.explanation } : item));
     } catch (e: any) {
       console.error(e);
       alert(`エラー: ${e.message}`);
@@ -137,6 +147,7 @@ export default function StudyPage() {
       setGeneratingExp(false);
     }
   };
+
 
   const handleFollowUp = async () => {
     if (!chatInput.trim()) return;
@@ -239,7 +250,7 @@ export default function StudyPage() {
               disabled={selectedOption === null || generatingExp}
               onClick={handleSubmit}
             >
-              {generatingExp ? "e-Gov出力・解説を生成中..." : "解答と解説を確認する"}
+              {generatingExp ? "e-Gov出力・解説を生成中..." : q.explanation ? "解答と解説を確認する（保存済み）" : "解答と解説を確認する"}
             </button>
           ) : (
             <div className="animate-fade-in">
