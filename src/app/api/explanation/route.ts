@@ -17,7 +17,6 @@ export async function POST(req: Request) {
 
     const { questionId, questionText, optionsJson, userAnswer } = await req.json();
 
-    // questionId は必須 — 解説は必ずDBに紐付けて保存する
     if (!questionId) {
       return NextResponse.json({ error: "questionId is required to save the explanation." }, { status: 400 });
     }
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
 
     const prompt = `
       あなたは行政書士試験に特化した最高峰のAIアシスタントです。
-      以下の問題テキストと選択肢、そしてユーザーの解答に基づいて、正確な解説を生成してください。
+      以下の問題テキストと選択肢に基づいて、正確な解説を生成し、正解の番号（1〜5）を特定してください。
       
       【問題テキスト】
       "${questionText}"
@@ -38,28 +37,52 @@ export async function POST(req: Request) {
       【選択肢】
       ${optionsParsed.map((o: string, i: number) => (i+1) + ". " + o).join('\n')}
 
-      【ユーザーの解答】: ${userAnswer}
+      【ユーザーの現在の解答】: ${userAnswer}
 
       【厳格な制約（必ず守ること）】
       1. 解説の根拠となる条文は必ず「 https://laws.e-gov.go.jp/ 」を参照し、正確なURLを提供すること。
       2. 行政書士試験の問題データ処理において、クイズ形式の出題・回答は絶対に避け、必ず本試験同様の長文テキスト形式で解説すること。
       3. 選択肢がなぜ正解・不正解なのかを、e-Govの条文や関連判例に基づいて徹底的かつ詳細に解説してください。
-    `;
+      4. 出力は必ず以下のJSON形式で行ってください。
+      
+      【出力形式】
+      {
+        "correctAnswer": "正解の番号（数値のみ、例: 3）",
+        "explanation": "詳細な解説テキスト"
+      }
+    `.trim();
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-lite",
       contents: prompt
     });
 
-    const explanation = response.text || "No explanation generated.";
+    const responseText = response.text || "{}";
+    let jsonData: { correctAnswer?: string | number, explanation?: string } = {};
+    
+    try {
+      // JSON部分を抽出（バックティックス等の除去）
+      const cleanedJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      jsonData = JSON.parse(cleanedJson);
+    } catch (e) {
+      console.error("JSON Parse Error in Explanation API:", e, responseText);
+      // フォールバック: JSON解析に失敗した場合はテキスト全体を解説とし、正解は不明とする
+      jsonData = { explanation: responseText };
+    }
 
-    // 解説を必ずDBに保存する
+    const explanation = jsonData.explanation || "No explanation generated.";
+    const correctAnswer = jsonData.correctAnswer ? String(jsonData.correctAnswer) : null;
+
+    // 解説と正解をDBに保存する
     await prisma.question.update({
       where: { id: questionId },
-      data: { explanation }
+      data: { 
+        explanation,
+        correctAnswer
+      }
     });
 
-    return NextResponse.json({ explanation });
+    return NextResponse.json({ explanation, correctAnswer });
   } catch (error: any) {
     console.error("Explanation Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

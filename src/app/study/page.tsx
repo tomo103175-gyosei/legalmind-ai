@@ -52,6 +52,8 @@ export default function StudyPage() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [generatingExp, setGeneratingExp] = useState(false);
+  const [userResult, setUserResult] = useState<{ isCorrect: boolean; correctAnswer: string } | null>(null);
+
 
   const fetchSchedule = () => {
     fetch("/api/questions/schedule?userId=test-user")
@@ -116,13 +118,19 @@ export default function StudyPage() {
   const handleSubmit = async () => {
     if (selectedOption === null) return;
 
-    // DBに解説が既に保存されている場合はAPIを呼ばずそのまま表示
-    if (q.explanation) {
+    const userAnswerNum = (selectedOption + 1).toString();
+
+    // DBに解説と正解の両方が既に保存されている場合はAPIを呼ばずそのまま表示
+    if (q.explanation && q.correctAnswer) {
       setExplanation(q.explanation);
+      setUserResult({
+        isCorrect: q.correctAnswer === userAnswerNum,
+        correctAnswer: q.correctAnswer
+      });
       return;
     }
 
-    // 未生成の場合のみAIで生成してDBに保存
+    // 解説または正解が未生成の場合のみAIで生成してDBに保存
     setGeneratingExp(true);
     try {
       const res = await fetch("/api/explanation", {
@@ -137,9 +145,21 @@ export default function StudyPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "解説の生成に失敗しました");
+      
       setExplanation(data.explanation);
+      if (data.correctAnswer) {
+        setUserResult({
+          isCorrect: data.correctAnswer === userAnswerNum,
+          correctAnswer: data.correctAnswer
+        });
+      }
+
       // ローカルのquestionキャッシュにも反映（次の復習で再APIコールを防ぐ）
-      setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, explanation: data.explanation } : item));
+      setQuestions(prev => prev.map(item => item.id === q.id ? { 
+        ...item, 
+        explanation: data.explanation,
+        correctAnswer: data.correctAnswer 
+      } : item));
     } catch (e: any) {
       console.error(e);
       alert(`エラー: ${e.message}`);
@@ -189,6 +209,7 @@ export default function StudyPage() {
     setQuestions(questions.slice(1));
     setSelectedOption(null);
     setExplanation(null);
+    setUserResult(null);
     setFollowUps([]);
     setChatInput("");
     
@@ -197,6 +218,7 @@ export default function StudyPage() {
     // 4. Refresh list so nextReviewDate is reflected
     fetchAllQuestions();
   };
+
 
   return (
     <div style={{ maxWidth: "600px", margin: "0 auto" }}>
@@ -254,7 +276,31 @@ export default function StudyPage() {
             </button>
           ) : (
             <div className="animate-fade-in">
+              {userResult && (
+                <div style={{ 
+                  textAlign: "center", 
+                  padding: "1rem", 
+                  marginBottom: "1rem", 
+                  borderRadius: "12px", 
+                  fontSize: "1.5rem", 
+                  fontWeight: "bold",
+                  background: userResult.isCorrect ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                  border: `2px solid ${userResult.isCorrect ? "var(--success-color)" : "rgba(239, 68, 68, 1)"}`,
+                  color: userResult.isCorrect ? "var(--success-color)" : "rgba(239, 68, 68, 1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem"
+                }}>
+                  {userResult.isCorrect ? (
+                    <><span>⭕</span> 正解です！</>
+                  ) : (
+                    <><span>❌</span> 不正解（正解は選択肢 {userResult.correctAnswer}）</>
+                  )}
+                </div>
+              )}
               <h3 style={{ color: "var(--success-color)", marginBottom: "0.5rem", fontSize: "1.1rem" }}>e-Gov 根拠に基づく解説</h3>
+
               <div style={{ whiteSpace: "pre-wrap", marginBottom: "2rem", background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }}>
                 {explanation}
               </div>
