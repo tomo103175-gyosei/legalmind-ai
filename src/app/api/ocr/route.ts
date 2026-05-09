@@ -84,13 +84,13 @@ export async function POST(req: Request) {
       IMPORTANT:
       - If the problem statement contains options labeled ア〜エ or ア〜オ, then:
         - The statements ア〜エ/オ are part of the questionText (include them up to エ or オ).
-        - ENSURE each statement (ア, イ, ウ, エ, オ) starts on a NEW LINE for readability.
+        - ENSURE each statement (ア, イ, ウ, エ, オ) starts on a NEW LINE and there is an EMPTY LINE between them for readability.
         - "optionsJson" should contain the selectable labels (usually 1 to 5).
         - If labels 1 to 5 have associated combination text like "ア・エ" or "アとイ", INCLUDE THAT TEXT in the optionsJson.
       
       Format the output strictly as a JSON object with this exact structure:
       {
-        "questionText": "The main text of the question (ensure ア, イ, ウ... each start on a new line)",
+        "questionText": "The main text of the question (ensure an empty line between ア, イ, ウ...)",
         "optionsJson": ["Option 1 text", "Option 2 text", "Option 3 text", "Option 4 text", "Option 5 text"]
       }
       Do not include any markdown backticks or other text. Just the JSON.
@@ -129,22 +129,19 @@ export async function POST(req: Request) {
       let qt = typeof jsonData.questionText === "string" ? jsonData.questionText : "";
       const optJson = Array.isArray(jsonData.optionsJson) ? jsonData.optionsJson : [];
 
-      // 設問（ア〜オ）ごとに改行を入れるリフォーマット処理
+      // 設問（ア〜オ）ごとに改行（空行込み）を入れるリフォーマット処理
       if (qt) {
-        // すでに改行されている場合もあるので、一旦正規化してから改行を挿入
-        // 文中の「ア」「イ」などに反応しすぎないよう、行頭またはスペースの後の「ア〜オ + 記号/スペース」にマッチさせる
         const reformatQt = (text: string) => {
           const labels = ["ア", "イ", "ウ", "エ", "オ"];
           let formatted = text;
           labels.forEach(label => {
-            // 文中（改行以外）に現れる「ア」「イ」などのラベルを検出し、その前に改行を入れる
-            // 前に句読点やスペースがある場合も考慮
+            // 文中（改行以外）に現れる「ア」「イ」などのラベルを検出し、その前に空行（\n\n）を入れる
             const regex = new RegExp(`([^\\n])(\\s*${label}[\\s　\\.．、:：\\)])`, 'g');
-            formatted = formatted.replace(regex, '$1\n$2');
+            formatted = formatted.replace(regex, '$1\n\n$2');
             
             // 記号がない場合（例: 「...。ア 行政手続法...」）のケースも補完
             const regexNoSym = new RegExp(`([。．])(${label})`, 'g');
-            formatted = formatted.replace(regexNoSym, '$1\n$2');
+            formatted = formatted.replace(regexNoSym, '$1\n\n$2');
           });
           return formatted.trim();
         };
