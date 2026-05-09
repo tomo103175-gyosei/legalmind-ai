@@ -137,10 +137,14 @@ export async function POST(req: Request) {
           const labels = ["ア", "イ", "ウ", "エ", "オ"];
           let formatted = text;
           labels.forEach(label => {
-            // 例: 「 イ」「、イ」「。イ」などを「\nイ」に置換
-            // すでに改行がある場合は重複させない
-            const regex = new RegExp(`([^\\n])\\s*(${label}[\\s　\\.．、:：\\)])`, 'g');
+            // 文中（改行以外）に現れる「ア」「イ」などのラベルを検出し、その前に改行を入れる
+            // 前に句読点やスペースがある場合も考慮
+            const regex = new RegExp(`([^\\n])(\\s*${label}[\\s　\\.．、:：\\)])`, 'g');
             formatted = formatted.replace(regex, '$1\n$2');
+            
+            // 記号がない場合（例: 「...。ア 行政手続法...」）のケースも補完
+            const regexNoSym = new RegExp(`([。．])(${label})`, 'g');
+            formatted = formatted.replace(regexNoSym, '$1\n$2');
           });
           return formatted.trim();
         };

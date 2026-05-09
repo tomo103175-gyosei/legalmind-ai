@@ -238,7 +238,7 @@ export default function StudyPage() {
         </div>
       ) : (
         <div className="glass-card animate-fade-in">
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem", lineHeight: "1.5" }}>{q.questionText}</h2>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>{q.questionText}</h2>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
             {options.map((opt: string, i: number) => (
@@ -395,7 +395,7 @@ export default function StudyPage() {
                       listStyle: "none",
                     }}
                   >
-                    <span style={{ fontWeight: 700, lineHeight: "1.5" }}>
+                    <span style={{ fontWeight: 700, lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
                       {item.questionText}
                     </span>
                     <span style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
