@@ -25,6 +25,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing question content." }, { status: 400 });
     }
 
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    const userPlan = dbUser?.plan || "FREE";
+
     const optionsParsed = JSON.parse(optionsJson);
 
     // 判例問題や複雑な形式（組み合わせ、個数）を判定
@@ -39,9 +42,9 @@ export async function POST(req: Request) {
       ? "gemini-2.5-flash" 
       : "gemini-2.5-flash-lite";
 
-    console.log(`[Model Selection] Precedent: ${isPrecedent}, Complex: ${isComplex} -> Using ${selectedModel}`);
+    console.log(`[Model Selection] Plan: ${userPlan}, Precedent: ${isPrecedent}, Complex: ${isComplex} -> Using ${selectedModel}`);
 
-    const prompt = `
+    let prompt = `
       あなたは行政書士試験に特化した最高峰のAIアシスタントです。
       以下の問題テキストと選択肢に基づいて、正確な解説を生成し、正解の番号（1〜5）を特定してください。
       
@@ -54,6 +57,23 @@ export async function POST(req: Request) {
       【ユーザーの現在の解答】: ${userAnswer}
 
       【厳格な制約（必ず守ること）】
+    `.trim();
+
+    if (userPlan === "FREE") {
+      prompt += `
+      1. 各選択肢（1〜5）について、それぞれ2〜3行程度で簡潔に正誤の理由を説明してください。
+      2. 法律の専門用語は使いつつも、初学者にもわかりやすい平易な表現を心がけてください。
+      3. 解説の最後に必ず「※詳細はプレミアムプランで確認できます」という一文を単独の行で追記してください。
+      4. 出力は必ず以下のJSON形式で行ってください。
+      
+      【出力形式】
+      {
+        "correctAnswer": "正解の番号（数値のみ、例: 3）",
+        "explanation": "各肢の簡潔な解説テキスト\\n\\n※詳細はプレミアムプランで確認できます"
+      }
+      `;
+    } else {
+      prompt += `
       1. 解説の根拠となる条文は必ず「 https://laws.e-gov.go.jp/ 」を参照し、正確なURLを提供すること。
       2. 行政書士試験の問題データ処理において、クイズ形式の出題・回答は絶対に避け、必ず本試験同様の長文テキスト形式で解説すること。
       3. 選択肢がなぜ正解・不正解なのかを、e-Govの条文や関連判例に基づいて徹底的かつ詳細に解説してください。
@@ -64,6 +84,8 @@ export async function POST(req: Request) {
         "correctAnswer": "正解の番号（数値のみ、例: 3）",
         "explanation": "詳細な解説テキスト"
       }
+      `;
+    }
     `.trim();
 
     const response = await ai.models.generateContent({

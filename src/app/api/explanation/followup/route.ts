@@ -21,11 +21,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required context." }, { status: 400 });
     }
 
-    // Chat Limits check (max 3 turns)
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    const userPlan = dbUser?.plan || "FREE";
+
+    // Chat Limits check
     const userMessageCount = (chatHistory || []).filter((m: any) => m.role === 'user').length;
-    if (userMessageCount >= 3) { // 3回目の送信は許可、4回目以降を制限
-      return NextResponse.json({ error: "深掘りチャットの制限（3往復）に到達しました。" }, { status: 403 });
+    
+    if (userPlan === "FREE" && userMessageCount >= 1) {
+      return NextResponse.json({ error: "無料プランのチャット制限（1回）に到達しました。プレミアムプランで無制限に質問できます。" }, { status: 403 });
     }
+    // Premium is unlimited (removing the 3-turn limit)
 
     // 判例問題や複雑な形式を判定
     const precedentKeywords = ["判例", "最高裁", "大審院", "決定", "判決", "趣旨", "事件"];

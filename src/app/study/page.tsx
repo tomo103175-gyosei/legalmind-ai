@@ -53,6 +53,7 @@ export default function StudyPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [generatingExp, setGeneratingExp] = useState(false);
   const [userResult, setUserResult] = useState<{ isCorrect: boolean; correctAnswer: string } | null>(null);
+  const [usage, setUsage] = useState<any>(null);
 
 
   const fetchSchedule = () => {
@@ -105,6 +106,10 @@ export default function StudyPage() {
     fetchSchedule();
     // Fetch all uploaded questions list
     fetchAllQuestions();
+    // Fetch user usage/plan
+    fetch("/api/user/usage")
+      .then(r => r.json())
+      .then(data => setUsage(data));
   }, []);
 
   if (loading) return <div style={{ textAlign: "center" }}>今日のタスクを読み込み中...</div>;
@@ -320,11 +325,20 @@ export default function StudyPage() {
                   <textarea 
                     value={chatInput} 
                     onChange={e => setChatInput(e.target.value)} 
-                    disabled={chatLoading || followUps.filter(f => f.role === 'user').length >= 3} 
-                    placeholder={followUps.filter(f => f.role === 'user').length >= 3 ? "深掘りチャットの制限（3往復）に到達しました" : "「ここ間違ってませんか？」「判例を教えてください」"} 
+                    disabled={chatLoading || (usage?.plan === 'FREE' ? followUps.filter(f => f.role === 'user').length >= 1 : false)} 
+                    placeholder={
+                      usage?.plan === 'FREE' && followUps.filter(f => f.role === 'user').length >= 1 
+                        ? "無料プランの制限（1回）に到達しました" 
+                        : "「ここ間違ってませんか？」「判例を教えてください」"
+                    } 
                     style={{ flex: 1, padding: "0.8rem", borderRadius: "8px", border: "1px solid var(--border-color)", background: "rgba(0,0,0,0.1)", color: "var(--text-main)", resize: "vertical", minHeight: "50px", fontFamily: "inherit" }} 
                   />
-                  <button className="btn btn-primary" onClick={handleFollowUp} disabled={chatLoading || !chatInput.trim() || followUps.filter(f => f.role === 'user').length >= 3} style={{ whiteSpace: "nowrap", padding: "0 1rem" }}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleFollowUp} 
+                    disabled={chatLoading || !chatInput.trim() || (usage?.plan === 'FREE' ? followUps.filter(f => f.role === 'user').length >= 1 : false)} 
+                    style={{ whiteSpace: "nowrap", padding: "0 1rem" }}
+                  >
                     {chatLoading ? "考案中..." : "送信する"}
                   </button>
                 </div>
