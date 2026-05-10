@@ -31,16 +31,19 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 style={{ fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem", marginBottom: "1rem" }}>3. 利用制限（無料プラン）</h2>
-            <p>
-              無料プランのユーザーには以下の制限が適用されます。
-            </p>
-            <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
+            <h2 style={{ fontSize: "1.25rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem", marginBottom: "1rem" }}>3. 利用制限とプラン</h2>
+            <p><strong>無料プラン:</strong></p>
+            <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem", marginBottom: "1rem" }}>
               <li>1日の画像解析上限：3問まで</li>
               <li>アカウント総保存容量：15問まで</li>
             </ul>
-            <p style={{ marginTop: "0.5rem" }}>
-              上限に達した場合は、既存データの削除またはプレミアムプランへのアップグレードが必要です。
+            <p><strong>プレミアムプラン（月額980円・税込）:</strong></p>
+            <ul style={{ paddingLeft: "1.5rem", marginTop: "0.5rem" }}>
+              <li>画像解析・保存：無制限</li>
+              <li>すべての機能が利用可能</li>
+            </ul>
+            <p style={{ marginTop: "1rem" }}>
+              無料プランの上限に達した場合は、既存データの削除またはプレミアムプランへのアップグレードが必要です。
             </p>
           </section>
 
