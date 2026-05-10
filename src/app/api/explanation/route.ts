@@ -37,16 +37,14 @@ export async function POST(req: Request) {
     const isPrecedent = precedentKeywords.some(k => questionText.includes(k));
     const isComplex = complexKeywords.some(k => questionText.includes(k));
     
-    // 判例または難易度が高い場合は gemini-2.5-flash、それ以外は lite を使用
-    const selectedModel = (isPrecedent || isComplex) 
-      ? "gemini-2.5-flash" 
-      : "gemini-2.5-flash-lite";
+    // 解説には常に精度の高い gemini-2.5-flash を使用（liteはハルシネーション回避のため使用しない）
+    const selectedModel = "gemini-2.5-flash";
 
-    console.log(`[Model Selection] Plan: ${userPlan}, Precedent: ${isPrecedent}, Complex: ${isComplex} -> Using ${selectedModel}`);
+    console.log(`[Model Selection] Plan: ${userPlan}, accuracy-priority -> Using ${selectedModel}`);
 
     let prompt = `
-      あなたは行政書士試験に特化した最高峰のAIアシスタントです。
-      以下の問題テキストと選択肢に基づいて、正確な解説を生成し、正解の番号（1〜5）を特定してください。
+      あなたは行政書士試験に特化した、法務のプロフェッショナルAIアシスタントです。
+      以下の問題に対し、日本の法令（e-Gov）および最高裁判例に基づいた、極めて正確な解説を提供してください。
       
       【問題テキスト】
       "${questionText}"
@@ -56,33 +54,35 @@ export async function POST(req: Request) {
 
       【ユーザーの現在の解答】: ${userAnswer}
 
-      【厳格な制約（必ず守ること）】
+      【絶対遵守のルール（ハルシネーション対策）】
+      1. 条文番号の捏造は絶対にしないでください。不明な場合は「関連する条文」として記述し、具体的な番号を偽らないこと。
+      2. 根拠となる法律名（例：行政手続法、民法、行政事件訴訟法など）を必ず明記してください。
+      3. 可能な限り「第〇条第〇項」まで特定して解説してください。
+      4. e-Gov（https://laws.e-gov.go.jp/）のURLを提示する場合は、実在するものか慎重に判断してください。
     `.trim();
 
     if (userPlan === "FREE") {
       prompt += `
-      1. 各選択肢（1〜5）について、それぞれ2〜3行程度で簡潔に正誤の理由を説明してください。
-      2. 法律の専門用語は使いつつも、初学者にもわかりやすい平易な表現を心がけてください。
-      3. 解説の最後に必ず「※詳細はプレミアムプランで確認できます」という一文を単独の行で追記してください。
-      4. 出力は必ず以下のJSON形式で行ってください。
+      5. 各選択肢（1〜5）について、正誤のポイントを条文の趣旨に沿って2〜3行で簡潔に説明してください。
+      6. 解説の最後に必ず「※詳細はプレミアムプランで確認できます」という一文を単独の行で追記してください。
+      7. 出力は必ず以下のJSON形式で行ってください。
       
       【出力形式】
       {
         "correctAnswer": "正解の番号（数値のみ、例: 3）",
-        "explanation": "各肢の簡潔な解説テキスト\\n\\n※詳細はプレミアムプランで確認できます"
+        "explanation": "各肢の正確かつ簡潔な解説テキスト（条文根拠を含む）\\n\\n※詳細はプレミアムプランで確認できます"
       }
       `;
     } else {
       prompt += `
-      1. 解説の根拠となる条文は必ず「 https://laws.e-gov.go.jp/ 」を参照し、正確なURLを提供すること。
-      2. 行政書士試験の問題データ処理において、クイズ形式の出題・回答は絶対に避け、必ず本試験同様の長文テキスト形式で解説すること。
-      3. 選択肢がなぜ正解・不正解なのかを、e-Govの条文や関連判例に基づいて徹底的かつ詳細に解説してください。
-      4. 出力は必ず以下のJSON形式で行ってください。
+      5. 選択肢がなぜ正解・不正解なのかを、e-Govの条文や関連判例に基づいて「徹底的かつ詳細に」解説してください。
+      6. 行政書士試験の過去問解説として相応しい、格調高く正確な文章で記述してください。
+      7. 出力は必ず以下のJSON形式で行ってください。
       
       【出力形式】
       {
-        "correctAnswer": "正解の番号（数値のみ, 例: 3）",
-        "explanation": "詳細な解説テキスト"
+        "correctAnswer": "正解の番号（数値のみ、例: 3）",
+        "explanation": "e-Gov条文URL、法律名、条文番号を網羅した詳細な解説テキスト"
       }
       `;
     }

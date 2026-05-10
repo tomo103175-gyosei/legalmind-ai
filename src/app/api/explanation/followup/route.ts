@@ -32,33 +32,27 @@ export async function POST(req: Request) {
     }
     // Premium is unlimited (removing the 3-turn limit)
 
-    // 判例問題や複雑な形式を判定
-    const precedentKeywords = ["判例", "最高裁", "大審院", "決定", "判決", "趣旨", "事件"];
-    const complexKeywords = ["組合せ", "組み合わせ", "個数", "いくつあるか", "正誤の組み合わせ"];
-    
-    const isPrecedent = precedentKeywords.some(k => questionText.includes(k));
-    const isComplex = complexKeywords.some(k => questionText.includes(k));
-    
-    // モデル選択
-    const selectedModel = (isPrecedent || isComplex) 
-      ? "gemini-2.5-flash" 
-      : "gemini-2.5-flash-lite";
-
-    console.log(`[Follow-up Model Selection] Precedent: ${isPrecedent}, Complex: ${isComplex} -> Using ${selectedModel}`);
+    // 常に精度の高い gemini-2.5-flash を使用
+    const selectedModel = "gemini-2.5-flash";
+    console.log(`[Follow-up Model Selection] accuracy-priority -> Using ${selectedModel}`);
 
     // Build the conversation context
     let prompt = `
-      あなたは行政書士試験に特化した最高峰のAIアシスタントです。
-      ユーザーは以下の問題について学習しています:
+      あなたは行政書士試験に特化した、法務のプロフェッショナルAIアシスタントです。
+      ユーザーの質問に対し、日本の法令（e-Gov）および最高裁判例に基づいた、極めて正確な回答を提供してください。
+
+      【対象の問題】
       "${questionText}"
 
-      以前の解説:
+      【以前の解説】
       "${previousExplanation}"
 
-      【厳格なガードレール】
-      行政書士試験の解説に関係のない質問（例：一般的なプログラミングの質問、世間話、他資格の質問など）には一切応答しないでください。もし関係のない質問だと判断した場合は、「行政書士試験に関連する質問のみお答えできます。」とだけ返答してください。
+      【絶対遵守のルール（ハルシネーション対策）】
+      1. 条文番号（第〇条第〇項）の捏造は厳禁です。確証がない場合はその旨を伝え、不正確な情報を教えないでください。
+      2. 行政書士試験に関連しない質問には「行政書士試験に関連する質問のみお答えできます。」と返答してください。
+      3. 回答には必ず具体的な法律名（例：行政手続法、民法など）を含めてください。
       
-      これまでの会話履歴（ある場合）:
+      【これまでの会話履歴（ある場合）】:
     `;
 
     if (chatHistory && chatHistory.length > 0) {
