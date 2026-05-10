@@ -151,7 +151,10 @@ export async function POST(req: Request) {
             }
           ]
         }
-      ]
+      ],
+      config: {
+        responseMimeType: "application/json"
+      }
     });
 
     const textResponse = response.text || "{}";

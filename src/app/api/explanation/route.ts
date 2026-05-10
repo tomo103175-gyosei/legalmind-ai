@@ -92,7 +92,10 @@ export async function POST(req: Request) {
     const response = await ai.models.generateContent({
       model: selectedModel,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 8192 }
+      config: { 
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json"
+      }
     });
 
     const responseText = response.text || "{}";
