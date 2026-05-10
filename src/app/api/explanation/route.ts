@@ -81,6 +81,7 @@ export async function POST(req: Request) {
       7. 出力は必ず以下のJSON形式で行ってください。
       
       【出力形式】
+      絶対にJSON形式のデータのみを出力してください。挨拶や前置きの文章は一切出力しないでください。
       {
         "correctAnswer": "正解の番号（数値のみ、例: 3）",
         "explanation": "e-Gov条文URL、法律名、条文番号を網羅した詳細な解説テキスト"
@@ -90,16 +91,23 @@ export async function POST(req: Request) {
 
     const response = await ai.models.generateContent({
       model: selectedModel,
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 8192 }
     });
 
     const responseText = response.text || "{}";
     let jsonData: { correctAnswer?: string | number, explanation?: string } = {};
     
     try {
-      // JSON部分を抽出（バックティックス等の除去）
-      const cleanedJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      jsonData = JSON.parse(cleanedJson);
+      // 挨拶文などが混ざっていてもJSON部分だけを抽出する
+      const start = responseText.indexOf('{');
+      const end = responseText.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        const jsonStr = responseText.slice(start, end + 1);
+        jsonData = JSON.parse(jsonStr);
+      } else {
+        throw new Error("JSON object not found");
+      }
     } catch (e) {
       console.error("JSON Parse Error in Explanation API:", e, responseText);
       // フォールバック: JSON解析に失敗した場合はテキスト全体を解説とし、正解は不明とする

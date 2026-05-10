@@ -70,7 +70,8 @@ export async function POST(req: Request) {
 
     const response = await ai.models.generateContent({
       model: selectedModel,
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 8192 }
     });
 
     return NextResponse.json({ answer: response.text || "返答を生成できませんでした。" });
