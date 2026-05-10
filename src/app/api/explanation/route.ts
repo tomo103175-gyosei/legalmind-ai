@@ -15,29 +15,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-    if (!dbUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Check daily explanation limit for FREE plan
-    if (dbUser.plan === 'FREE') {
-      const today = new Date().toDateString();
-      const lastUpload = dbUser.lastUploadDate.toDateString();
-      
-      let currentDailyCount = dbUser.dailyUploadCount;
-      if (today !== lastUpload) {
-        currentDailyCount = 0;
-      }
-
-      if (currentDailyCount >= 3) {
-        return NextResponse.json({ 
-          error: "1日のAI利用上限（3問）に達しました。明日またご利用いただくか、アップグレードをご検討ください。", 
-          limitReached: true 
-        }, { status: 403 });
-      }
-    }
-
     const { questionId, questionText, optionsJson, userAnswer } = await req.json();
 
     if (!questionId) {

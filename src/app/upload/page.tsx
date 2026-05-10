@@ -248,38 +248,38 @@ export default function UploadPage() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
-        <label 
-          className={`btn btn-outline ${isLimitReached ? 'disabled' : ''}`} 
-          style={{ cursor: isLimitReached ? "not-allowed" : "pointer", display: "inline-block", opacity: isLimitReached ? 0.6 : 1 }}
-          onClick={() => isLimitReached && setShowPaywall(true)}
-        >
-          📸 カメラで撮影する
-          {!isLimitReached && (
-            <input
-              type="file"
-              accept="image/jpeg, image/jpg, image/png"
-              capture="environment"
-              onChange={onFileSelect}
-              style={{ display: "none" }}
-            />
-          )}
-        </label>
+        {!isLimitReached ? (
+          <>
+            <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-block" }}>
+              📸 カメラで撮影する
+              <input
+                type="file"
+                accept="image/jpeg, image/jpg, image/png"
+                capture="environment"
+                onChange={onFileSelect}
+                style={{ display: "none" }}
+              />
+            </label>
 
-        <label 
-          className={`btn btn-outline ${isLimitReached ? 'disabled' : ''}`} 
-          style={{ cursor: isLimitReached ? "not-allowed" : "pointer", display: "inline-block", opacity: isLimitReached ? 0.6 : 1 }}
-          onClick={() => isLimitReached && setShowPaywall(true)}
-        >
-          📁 フォルダから選ぶ
-          {!isLimitReached && (
-            <input
-              type="file"
-              accept="image/jpeg, image/jpg, image/png"
-              onChange={onFileSelect}
-              style={{ display: "none" }}
-            />
-          )}
-        </label>
+            <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-block" }}>
+              📁 フォルダから選ぶ
+              <input
+                type="file"
+                accept="image/jpeg, image/jpg, image/png"
+                onChange={onFileSelect}
+                style={{ display: "none" }}
+              />
+            </label>
+          </>
+        ) : (
+          <div 
+            className="btn btn-outline disabled" 
+            style={{ cursor: "not-allowed", opacity: 0.6 }}
+            onClick={() => setShowPaywall(true)}
+          >
+            🔒 上限に達したため利用できません
+          </div>
+        )}
       </div>
 
       {file && (
@@ -291,7 +291,7 @@ export default function UploadPage() {
       <button
         className="btn btn-primary"
         onClick={handleUpload}
-        disabled={(!file && !isLimitReached) || parsing || !!duplicateWarning}
+        disabled={isLimitReached || parsing || (!file && !parsing) || !!duplicateWarning}
         style={{ width: "100%", height: "3.5rem", fontSize: "1.1rem", opacity: isLimitReached ? 0.7 : 1 }}
       >
         {isLimitReached ? "🔒 保存上限に達しました" : (parsing ? "⏳ AIが画像を解析中 (約10〜30秒)..." : "アップロードして解析")}

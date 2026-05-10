@@ -1,81 +1,65 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id                String   @id @default(cuid())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  email             String?  @unique
-  name              String?
-  stripeCustomerId  String?
-  plan              String   @default("FREE")
-  dailyUploadCount  Int      @default(0)
-  lastUploadDate    DateTime @default(now())
-  questions         Question[]
-  reviewLogs        ReviewLog[]
-  chats             Chat[]
+  id               String      @id @default(cuid())
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  email            String?     @unique
+  name             String?
+  stripeCustomerId String?
+  dailyUploadCount Int         @default(0)
+  lastUploadDate   DateTime    @default(now())
+  plan             String      @default("FREE")
+  chats            Chat[]
+  questions        Question[]
+  reviewLogs       ReviewLog[]
 }
 
 model Question {
-  id              String   @id @default(cuid())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // OCR Extracted Data
-  originalImage   String?
-  questionText    String
-  optionsJson     String
-  
-  // AI Generated Data
-  correctAnswer   String?
-  explanation     String?
-  
-  // Spaced Repetition Data (SM-2 basics)
-  repetition      Int      @default(0)
-  interval        Int      @default(0)
-  easinessFactor  Float    @default(2.5)
-  nextReviewDate  DateTime @default(now())
-  
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs            ReviewLog[]
-  chats           Chat[]
+  id             String      @id @default(cuid())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  originalImage  String?
+  questionText   String
+  optionsJson    String
+  correctAnswer  String?
+  explanation    String?
+  repetition     Int         @default(0)
+  interval       Int         @default(0)
+  easinessFactor Float       @default(2.5)
+  nextReviewDate DateTime    @default(now())
+  userId         String
+  chats          Chat[]
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs           ReviewLog[]
 }
 
 model ReviewLog {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  
-  questionId  String
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  quality     Int      // SM-2 performance rating (0-5)
-  interval    Int
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  questionId String
+  userId     String
+  quality    Int
+  interval   Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Chat {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  
-  questionId  String
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  message     String
-  isUser      Boolean  @default(true)
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  questionId String
+  userId     String
+  isUser     Boolean  @default(true)
+  message    String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
