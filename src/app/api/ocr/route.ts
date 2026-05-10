@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { prisma } from '@/lib/prisma';
+import { createClient } from '@/utils/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +68,44 @@ function normalizeOptionsArray(raw: any) {
 export async function POST(req: Request) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Check limits for FREE plan before expensive AI processing
+    if (dbUser.plan === 'FREE') {
+      const today = new Date().toDateString();
+      const lastUpload = dbUser.lastUploadDate.toDateString();
+      
+      let currentDailyCount = dbUser.dailyUploadCount;
+      if (today !== lastUpload) {
+        currentDailyCount = 0;
+      }
+
+      if (currentDailyCount >= 3) {
+        return NextResponse.json({ 
+          error: "1日の上限（3問）に達しました。プレミアムプランで無制限に利用可能です。", 
+          limitReached: true 
+        }, { status: 403 });
+      }
+
+      const totalCount = await prisma.question.count({ where: { userId: user.id } });
+      if (totalCount >= 15) {
+        return NextResponse.json({
+          error: "合計保存上限（15問）に達しました。既存の問題を削除するかアップグレードしてください。",
+          capacityReached: true
+        }, { status: 403 });
+      }
+    }
+
     const formData = await req.formData();
     const imageFile = formData.get('image') as Blob;
     

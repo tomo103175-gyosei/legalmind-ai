@@ -56,7 +56,7 @@ export default function StudyPage() {
 
 
   const fetchSchedule = () => {
-    fetch("/api/questions/schedule?userId=test-user")
+    fetch("/api/questions/schedule")
       .then(r => r.json())
       .then(data => {
         setSchedule(data.schedule || []);
@@ -94,7 +94,7 @@ export default function StudyPage() {
   };
 
   useEffect(() => {
-    fetch("/api/questions/due?userId=test-user")
+    fetch("/api/questions/due")
       .then(r => r.json())
       .then(data => {
         setQuestions(data.questions || []);
@@ -202,7 +202,7 @@ export default function StudyPage() {
     await fetch("/api/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionId: q.id, userId: "test-user", quality })
+      body: JSON.stringify({ questionId: q.id, quality })
     });
     
     // 2. Next question

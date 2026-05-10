@@ -9,9 +9,14 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let dueCount = 0;
+  let totalCount = 0;
+  let userPlan = "FREE";
   let dbError = null;
   if (user) {
     try {
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      userPlan = dbUser?.plan || "FREE";
+
       dueCount = await prisma.question.count({
         where: {
           userId: user.id,
@@ -20,11 +25,17 @@ export default async function Home() {
           }
         }
       });
+
+      totalCount = await prisma.question.count({
+        where: { userId: user.id }
+      });
     } catch (e: any) {
       dbError = e.message;
       console.error("Prisma error in Home:", e);
     }
   }
+
+  const isLimitReached = userPlan === "FREE" && totalCount >= 15;
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
@@ -46,9 +57,18 @@ export default async function Home() {
         </p>
         
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
-          <Link href="/upload" className="btn btn-primary" style={{ width: "100%", maxWidth: "300px", padding: "1rem" }}>
-            ☑️ 問題をアップロードする
-          </Link>
+          {isLimitReached ? (
+            <div style={{ width: "100%", maxWidth: "300px", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <Link href="/upload" className="btn btn-outline" style={{ width: "100%", borderColor: "var(--error-color)", color: "var(--error-color)" }}>
+                🔒 保存上限に達しました
+              </Link>
+              <p style={{ fontSize: "0.75rem", color: "var(--error-color)" }}>過去の問題を削除するか、プランをアップグレードしてください。</p>
+            </div>
+          ) : (
+            <Link href="/upload" className="btn btn-primary" style={{ width: "100%", maxWidth: "300px", padding: "1rem" }}>
+              ☑️ 問題をアップロードする
+            </Link>
+          )}
           <Link href="/study" className="btn btn-outline" style={{ width: "100%", maxWidth: "300px", position: "relative", padding: "1rem" }}>
             📖 今日の復習タスク
             {user && dueCount > 0 ? (

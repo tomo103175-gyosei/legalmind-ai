@@ -60,6 +60,7 @@ export default function UploadPage() {
 
     if (saveRes.ok) {
       alert("✅ 解析と保存に成功しました！学習画面へ移動します。");
+      await fetchUsage(); // Refresh usage data
       router.push("/study");
     } else {
       const data = await saveRes.json();
