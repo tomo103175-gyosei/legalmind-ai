@@ -218,6 +218,9 @@ export default function StudyPage() {
     setFollowUps([]);
     setChatInput("");
     
+    // スクロールをトップに戻す
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     // 3. Refresh schedule so the user sees the newly calculated date shift magically!
     fetchSchedule();
     // 4. Refresh list so nextReviewDate is reflected
