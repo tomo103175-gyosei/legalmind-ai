@@ -52,6 +52,7 @@ export default function StudyPage() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [generatingExp, setGeneratingExp] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [userResult, setUserResult] = useState<{ isCorrect: boolean; correctAnswer: string } | null>(null);
   const [usage, setUsage] = useState<any>(null);
 
@@ -111,6 +112,24 @@ export default function StudyPage() {
       .then(r => r.json())
       .then(data => setUsage(data));
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (generatingExp) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress(p => (p < 95 ? p + 1 : 95));
+      }, 100);
+    } else {
+      setProgress(100);
+      const timer = setTimeout(() => setProgress(0), 500);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+      };
+    }
+    return () => clearInterval(interval);
+  }, [generatingExp]);
 
   if (loading) return <div style={{ textAlign: "center" }}>今日のタスクを読み込み中...</div>;
 
@@ -292,11 +311,24 @@ export default function StudyPage() {
           {!explanation ? (
             <button 
               className="btn btn-primary" 
-              style={{ width: "100%", height: "3.5rem" }} 
+              style={{ width: "100%", height: "3.5rem", position: "relative", overflow: "hidden" }} 
               disabled={selectedOption === null || generatingExp}
               onClick={handleSubmit}
             >
-              {generatingExp ? "e-Gov出力・解説を生成中..." : q.explanation ? "解答と解説を確認する（保存済み）" : "解答と解説を確認する"}
+              {generatingExp && (
+                <div style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  height: "100%",
+                  width: `${progress}%`,
+                  background: "rgba(255, 255, 255, 0.2)",
+                  transition: "width 0.1s linear"
+                }} />
+              )}
+              <span style={{ position: "relative", zIndex: 1 }}>
+                {generatingExp ? `判例・法令データを解析中... ${Math.floor(progress)}%` : q.explanation ? "解答と解説を確認する（保存済み）" : "解答と解説を確認する"}
+              </span>
             </button>
           ) : (
             <div className="animate-fade-in">
