@@ -118,7 +118,12 @@ export default function StudyPage() {
     if (generatingExp) {
       setProgress(0);
       interval = setInterval(() => {
-        setProgress(p => (p < 95 ? p + 1 : 95));
+        setProgress(p => {
+          if (p < 60) return p + 1;       // 最初は速く (6秒で60%)
+          if (p < 85) return p + 0.4;     // 中盤はゆっくり (約6秒で25%進む)
+          if (p < 95) return p + 0.1;     // 最後はじわじわ (約10秒で10%進む、合計22秒)
+          return 95;
+        });
       }, 100);
     } else {
       setProgress(100);
