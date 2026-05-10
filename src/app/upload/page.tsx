@@ -1,5 +1,4 @@
-"use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type DuplicateResult = {
@@ -11,12 +10,42 @@ type DuplicateResult = {
   existingQuestionId?: string;
 };
 
+type UsageData = {
+  plan: string;
+  dailyCount: number;
+  totalCount: number;
+  limits: {
+    FREE_DAILY: number;
+    FREE_TOTAL: number;
+  };
+};
+
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateResult | null>(null);
   const [pendingSaveData, setPendingSaveData] = useState<{ questionText: string; optionsJson: string } | null>(null);
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetchUsage();
+  }, []);
+
+  const fetchUsage = async () => {
+    try {
+      const res = await fetch("/api/user/usage");
+      if (res.ok) {
+        const data = await res.json();
+        setUsage(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch usage:", e);
+    }
+  };
+
+  const isLimitReached = usage?.plan === "FREE" && usage.totalCount >= usage.limits.FREE_TOTAL;
 
   const saveQuestion = async (questionText: string, optionsJson: string) => {
     const saveRes = await fetch("/api/questions", {
@@ -32,12 +61,21 @@ export default function UploadPage() {
       alert("✅ 解析と保存に成功しました！学習画面へ移動します。");
       router.push("/study");
     } else {
-      const saveErr = await saveRes.text();
-      throw new Error(`保存エラー: ${saveErr.substring(0, 50)}`);
+      const data = await saveRes.json();
+      if (data.capacityReached || data.limitReached) {
+        setShowPaywall(true);
+      } else {
+        throw new Error(data.error || "保存エラーが発生しました");
+      }
     }
   };
 
   const handleUpload = async () => {
+    if (isLimitReached) {
+      setShowPaywall(true);
+      return;
+    }
+
     if (!file) {
       alert("⚠️ 画像が選択されていません！もう一度撮影してください。");
       return;
@@ -110,6 +148,10 @@ export default function UploadPage() {
   };
 
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLimitReached) {
+      setShowPaywall(true);
+      return;
+    }
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
       setDuplicateWarning(null);
@@ -126,11 +168,37 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="glass-card animate-fade-in" style={{ textAlign: "center" }}>
+    <div className="glass-card animate-fade-in" style={{ textAlign: "center", position: "relative" }}>
       <h2>📋 問題を登録</h2>
       <p style={{ color: "var(--text-muted)", marginBottom: "2rem" }}>
         カメラで直接撮影するか、保存済みの写真を選択してください。
       </p>
+
+      {/* ペイウォールモーダル風UI */}
+      {showPaywall && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(15, 23, 42, 0.9)", zIndex: 10, borderRadius: "var(--card-border-radius)",
+          display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "2rem"
+        }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1.5rem" }}>🔒</div>
+          <h3 style={{ marginBottom: "1rem" }}>アカウントの保存上限に達しました</h3>
+          <p style={{ color: "var(--text-muted)", marginBottom: "2rem", lineHeight: "1.6" }}>
+            無料プランの保存上限（15問）に達しました。<br/>
+            過去の学習履歴を削除して枠を空けるか、プレミアムプランで無制限に学習しましょう。
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%", maxWidth: "300px" }}>
+            <form action="/api/stripe/checkout" method="POST">
+              <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
+                プレミアムプランへアップグレード
+              </button>
+            </form>
+            <button className="btn btn-outline" onClick={() => setShowPaywall(false)}>
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 重複警告UI */}
       {duplicateWarning && (
@@ -178,25 +246,37 @@ export default function UploadPage() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
-        <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-block" }}>
+        <label 
+          className={`btn btn-outline ${isLimitReached ? 'disabled' : ''}`} 
+          style={{ cursor: isLimitReached ? "not-allowed" : "pointer", display: "inline-block", opacity: isLimitReached ? 0.6 : 1 }}
+          onClick={() => isLimitReached && setShowPaywall(true)}
+        >
           📸 カメラで撮影する
-          <input
-            type="file"
-            accept="image/jpeg, image/jpg, image/png"
-            capture="environment"
-            onChange={onFileSelect}
-            style={{ display: "none" }}
-          />
+          {!isLimitReached && (
+            <input
+              type="file"
+              accept="image/jpeg, image/jpg, image/png"
+              capture="environment"
+              onChange={onFileSelect}
+              style={{ display: "none" }}
+            />
+          )}
         </label>
 
-        <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-block" }}>
+        <label 
+          className={`btn btn-outline ${isLimitReached ? 'disabled' : ''}`} 
+          style={{ cursor: isLimitReached ? "not-allowed" : "pointer", display: "inline-block", opacity: isLimitReached ? 0.6 : 1 }}
+          onClick={() => isLimitReached && setShowPaywall(true)}
+        >
           📁 フォルダから選ぶ
-          <input
-            type="file"
-            accept="image/jpeg, image/jpg, image/png"
-            onChange={onFileSelect}
-            style={{ display: "none" }}
-          />
+          {!isLimitReached && (
+            <input
+              type="file"
+              accept="image/jpeg, image/jpg, image/png"
+              onChange={onFileSelect}
+              style={{ display: "none" }}
+            />
+          )}
         </label>
       </div>
 
@@ -209,11 +289,17 @@ export default function UploadPage() {
       <button
         className="btn btn-primary"
         onClick={handleUpload}
-        disabled={!file || parsing || !!duplicateWarning}
-        style={{ width: "100%", height: "3.5rem", fontSize: "1.1rem" }}
+        disabled={(!file && !isLimitReached) || parsing || !!duplicateWarning}
+        style={{ width: "100%", height: "3.5rem", fontSize: "1.1rem", opacity: isLimitReached ? 0.7 : 1 }}
       >
-        {parsing ? "⏳ AIが画像を解析中 (約10〜30秒)..." : "アップロードして解析"}
+        {isLimitReached ? "🔒 保存上限に達しました" : (parsing ? "⏳ AIが画像を解析中 (約10〜30秒)..." : "アップロードして解析")}
       </button>
+
+      {usage && usage.plan === "FREE" && (
+        <p style={{ marginTop: "1rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+          無料プラン利用状況: {usage.totalCount} / {usage.limits.FREE_TOTAL} 問保存済み
+        </p>
+      )}
     </div>
   );
 }

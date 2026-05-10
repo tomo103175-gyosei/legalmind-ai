@@ -65,6 +65,10 @@ export default async function Home() {
             📓 苦手ノート (間違えた問題)
           </Link>
         </div>
+        <p style={{ marginTop: "1.5rem", fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "center" }}>
+          ※AI生成のため誤りが含まれる場合があります。疑問点はチャット（1問3往復まで）で質問可能です。<br/>
+          詳細は<Link href="/terms" style={{ textDecoration: "underline", color: "inherit" }}>利用規約</Link>をご確認ください。
+        </p>
       </section>
 
       {/* 3-Step Guide Section */}
@@ -74,17 +78,17 @@ export default async function Home() {
           
           {/* Step 1 */}
           <div className="glass-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "2rem" }}>
-            <h3 style={{ fontSize: "1.5rem", color: "var(--primary-color)", marginBottom: "1rem" }}>ステップ1：撮る</h3>
+            <h3 style={{ fontSize: "1.5rem", color: "var(--primary-color)", marginBottom: "1rem" }}>ステップ1：撮影する</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: "1.6" }}>
-              間違えた問題や、わからない肢をスマホでパシャッ！画像の文字はAIが自動で読み取るよ。
+              間違えた問題や、わからない選択肢をスマホで撮影してください。画像の文字はAIが自動で読み取ります。
             </p>
           </div>
 
           {/* Step 2 */}
           <div className="glass-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "2rem" }}>
-            <h3 style={{ fontSize: "1.5rem", color: "var(--accent-color)", marginBottom: "1rem" }}>ステップ2：読む</h3>
+            <h3 style={{ fontSize: "1.5rem", color: "var(--accent-color)", marginBottom: "1rem" }}>ステップ2：解説を読む</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: "1.6" }}>
-              数秒待つだけ！e-Govの条文や判例に基づいた、正確でわかりやすい解説をAIが作成するよ。
+              数秒お待ちいただくだけで、e-Govの条文や判例に基づいた、正確でわかりやすい解説をAIが作成します。
             </p>
           </div>
 
@@ -92,7 +96,7 @@ export default async function Home() {
           <div className="glass-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "2rem" }}>
             <h3 style={{ fontSize: "1.5rem", color: "var(--success-color)", marginBottom: "1rem" }}>ステップ3：復習する</h3>
             <p style={{ color: "var(--text-muted)", lineHeight: "1.6" }}>
-              ダッシュボードを見るだけ！忘却曲線に合わせて、一番忘れやすい絶妙なタイミングで僕が再出題するよ。
+              「今日の復習タスク」をご確認いただくだけです。忘却曲線に合わせて、一番忘れやすい最適なタイミングでシステムが自動で再出題します。
             </p>
           </div>
 

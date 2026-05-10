@@ -71,10 +71,23 @@ export async function POST(req: Request) {
         currentCount = 0;
       }
 
+      // Check daily limit (3 questions)
       if (currentCount >= 3) {
         return NextResponse.json({ 
           error: "1日のアップロード上限（3問）に達しました。プレミアムプランへのアップグレードをご検討ください。", 
           limitReached: true 
+        }, { status: 403 });
+      }
+
+      // Check total capacity limit (15 questions)
+      const totalCount = await prisma.question.count({
+        where: { userId: user.id }
+      });
+
+      if (totalCount >= 15) {
+        return NextResponse.json({
+          error: "アカウントの保存上限（15問）に達しました。過去の学習履歴を削除して枠を空けるか、プレミアムプランで無制限に学習しましょう。",
+          capacityReached: true
         }, { status: 403 });
       }
 
