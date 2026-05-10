@@ -224,6 +224,22 @@ export default function StudyPage() {
     fetchAllQuestions();
   };
 
+  const handleSelectQuestion = (item: any) => {
+    // もし既に questions に入っていたら、それを先頭に持ってくる
+    // 入っていなければ、先頭に追加する
+    setQuestions(prev => {
+      const filtered = prev.filter(q => q.id !== item.id);
+      return [item, ...filtered];
+    });
+    // スクロールをトップに戻す
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 既存の解説や選択状態をリセット
+    setExplanation(null);
+    setSelectedOption(null);
+    setUserResult(null);
+    setFollowUps([]);
+  };
+
 
   return (
     <div style={{ maxWidth: "600px", margin: "0 auto" }}>
@@ -419,10 +435,21 @@ export default function StudyPage() {
                   </summary>
 
                   <div style={{ marginTop: "1rem", cursor: "auto" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                      <button
+                        className="btn btn-primary"
+                        style={{ fontSize: "0.85rem", padding: "0.4rem 1rem" }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelectQuestion(item);
+                        }}
+                      >
+                        📖 この問題を解く
+                      </button>
                       <button
                         className="btn btn-outline"
-                        style={{ borderColor: "rgba(239, 68, 68, 0.6)", color: "rgba(239, 68, 68, 1)" }}
+                        style={{ fontSize: "0.85rem", padding: "0.4rem 1rem", borderColor: "rgba(239, 68, 68, 0.6)", color: "rgba(239, 68, 68, 1)" }}
                         disabled={deletingId === item.id}
                         onClick={(e) => {
                           e.preventDefault();
@@ -430,7 +457,7 @@ export default function StudyPage() {
                           handleDeleteQuestion(item.id);
                         }}
                       >
-                        {deletingId === item.id ? "削除中..." : "この問題を削除"}
+                        {deletingId === item.id ? "削除中..." : "削除"}
                       </button>
                     </div>
 

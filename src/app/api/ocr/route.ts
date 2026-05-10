@@ -175,15 +175,21 @@ export async function POST(req: Request) {
           const labels = ["ア", "イ", "ウ", "エ", "オ"];
           let formatted = text;
           labels.forEach(label => {
-            // 文中（改行以外）に現れる「ア」「イ」などのラベルを検出し、その前に空行（\n\n）を入れる
-            const regex = new RegExp(`([^\\n])(\\s*${label}[\\s　\\.．、:：\\)])`, 'g');
-            formatted = formatted.replace(regex, '$1\n\n$2');
+            // 行頭、改行、または句点に続くラベルを検出し、前に空行を確保する
+            // ラベルの直後にはスペースや特定の記号が続くことを条件とし、誤爆を防ぐ
+            const regex = new RegExp(`(^|[\\n。．])\\s*(${label}[\\s　\\.．、:：\\)])`, 'g');
+            formatted = formatted.replace(regex, (match, p1, p2) => {
+              if (p1 === '\n') return `\n\n${p2}`;
+              if (p1 === '。' || p1 === '．') return `${p1}\n\n${p2}`;
+              return p2; // 行頭の場合はそのまま
+            });
             
-            // 記号がない場合（例: 「...。ア 行政手続法...」）のケースも補完
-            const regexNoSym = new RegExp(`([。．])(${label})`, 'g');
+            // 記号やスペースがない場合（例: 「...。ア行政手続法...」）のケースも補完
+            const regexNoSym = new RegExp(`([。．])\\s*(${label})`, 'g');
             formatted = formatted.replace(regexNoSym, '$1\n\n$2');
           });
-          return formatted.trim();
+          // 3つ以上の連続する改行を2つに正規化してレイアウト崩れを防ぐ
+          return formatted.replace(/\n{3,}/g, '\n\n').trim();
         };
         qt = reformatQt(qt);
         jsonData.questionText = qt;
