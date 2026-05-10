@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
     const response = await ai.models.generateContent({
       model: selectedModel,
-      contents: prompt
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
     return NextResponse.json({ answer: response.text || "返答を生成できませんでした。" });

@@ -81,16 +81,15 @@ export async function POST(req: Request) {
       
       【出力形式】
       {
-        "correctAnswer": "正解の番号（数値のみ、例: 3）",
+        "correctAnswer": "正解の番号（数値のみ, 例: 3）",
         "explanation": "詳細な解説テキスト"
       }
       `;
     }
-    `.trim();
 
     const response = await ai.models.generateContent({
       model: selectedModel,
-      contents: prompt
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
     const responseText = response.text || "{}";
