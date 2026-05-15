@@ -114,8 +114,19 @@ export async function POST(req: Request) {
       }
     } catch (e) {
       console.error("JSON Parse Error in Explanation API:", e, responseText);
-      // フォールバック: JSON解析に失敗した場合はテキスト全体を解説とし、正解は不明とする
-      jsonData = { explanation: responseText };
+      // フォールバック: JSON解析に失敗した場合、responseTextから "explanation": "..." の中身を抽出する
+      let extractedExplanation = responseText;
+      const expMatch = responseText.match(/"explanation"\s*:\s*"([^]*)/);
+      if (expMatch) {
+        let partialText = expMatch[1];
+        // replace escaped characters
+        partialText = partialText.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+        // cleanup trailing quotes or braces
+        partialText = partialText.replace(/"\s*\}\s*$/, '');
+        extractedExplanation = partialText;
+      }
+      
+      jsonData = { explanation: extractedExplanation + "\n\n(※AIによる解説生成が途中で途切れてしまいました。そのまま表示しています。)" };
     }
 
     const explanation = jsonData.explanation || "No explanation generated.";

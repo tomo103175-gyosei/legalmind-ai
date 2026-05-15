@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type WeakQuestion = {
   id: string;
@@ -194,7 +196,6 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
           </h4>
           <div
             style={{
-              whiteSpace: "pre-wrap",
               marginBottom: "1.5rem",
               background: "rgba(0,0,0,0.3)",
               padding: "1rem",
@@ -203,8 +204,9 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
               lineHeight: "1.6",
               borderLeft: "4px solid var(--accent-color)",
             }}
+            className="markdown-body"
           >
-            {explanation}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
           </div>
 
           <h4 style={{ textAlign: "center", marginBottom: "1rem", fontSize: "1rem" }}>この問題の理解度はどうでしたか？</h4>

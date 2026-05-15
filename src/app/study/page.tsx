@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 function ScheduleView({ schedule }: { schedule: any[] }) {
   if (!schedule || schedule.length === 0) {
@@ -362,8 +364,8 @@ export default function StudyPage() {
               )}
               <h3 style={{ color: "var(--success-color)", marginBottom: "0.5rem", fontSize: "1.1rem" }}>e-Gov 根拠に基づく解説</h3>
 
-              <div style={{ whiteSpace: "pre-wrap", marginBottom: "2rem", background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }}>
-                {explanation}
+              <div style={{ marginBottom: "2rem", background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }} className="markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
               </div>
 
               {/* Follow up chat UI */}
@@ -515,8 +517,8 @@ export default function StudyPage() {
                     {item.explanation && (
                       <div>
                         <div style={{ fontSize: "0.9rem", color: "var(--success-color)", marginBottom: "0.5rem" }}>解説</div>
-                        <div style={{ whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }}>
-                          {item.explanation}
+                        <div style={{ background: "rgba(0,0,0,0.3)", padding: "1rem", borderRadius: "8px", fontSize: "0.95rem", lineHeight: "1.6", borderLeft: "4px solid var(--accent-color)" }} className="markdown-body">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.explanation}</ReactMarkdown>
                         </div>
                       </div>
                     )}
