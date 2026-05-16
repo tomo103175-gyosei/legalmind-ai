@@ -13,7 +13,7 @@ function ScheduleView({ schedule }: { schedule: any[] }) {
   }
   
   return (
-    <div className="animate-fade-in" style={{ marginTop: "3rem", padding: "1.5rem 1rem", background: "rgba(255,255,255,0.03)", borderRadius: "var(--border-radius)", border: "1px solid rgba(255,255,255,0.05)" }}>
+    <div className="animate-fade-in" style={{ marginTop: "3rem", padding: "1.5rem 1rem", background: "rgba(255,255,255,0.03)", borderRadius: "var(--border-radius)", border: "1px solid rgba(255,255,255,0.05)", width: "100%", minWidth: 0 }}>
       <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", textAlign: "center" }}>📅 今後の復習スケジュール</h3>
       
       <div style={{ display: "flex", overflowX: "auto", gap: "10px", paddingBottom: "10px", justifyContent: schedule.length < 4 ? "center" : "flex-start" }}>
@@ -292,7 +292,7 @@ export default function StudyPage() {
 
 
   return (
-    <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+    <div style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
       {questions.length === 0 ? (
         <div className="glass-card animate-fade-in" style={{ textAlign: "center" }}>
           <h2>🎉 今日のタスクは完了しました！</h2>
@@ -452,7 +452,7 @@ export default function StudyPage() {
 
       <div
         className="glass-card animate-fade-in"
-        style={{ marginTop: "2rem" }}
+        style={{ marginTop: "2rem", width: "100%" }}
       >
         <h3 style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>📚 アップロード済みの問題一覧</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: "1rem" }}>
@@ -480,6 +480,8 @@ export default function StudyPage() {
                     borderRadius: "12px",
                     padding: "1rem",
                     cursor: "pointer",
+                    width: "100%",
+                    minWidth: 0,
                   }}
                 >
                   <summary
@@ -488,9 +490,10 @@ export default function StudyPage() {
                       flexDirection: "column",
                       gap: "0.4rem",
                       listStyle: "none",
+                      minWidth: 0,
                     }}
                   >
-                    <span style={{ fontWeight: 700, lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                    <span style={{ fontWeight: 700, lineHeight: "1.5", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                       {item.questionText}
                     </span>
                     <span style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
