@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -18,6 +18,7 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   const [explanationById, setExplanationById] = useState<Record<string, string | null>>({});
   const [loadingExpById, setLoadingExpById] = useState<Record<string, boolean>>({});
   const [submittingReviewById, setSubmittingReviewById] = useState<Record<string, boolean>>({});
+  const questionRef = useRef<HTMLDivElement>(null);
 
   const q = useMemo(() => {
     if (!selectedQuestionId) return null;
@@ -119,6 +120,93 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div ref={questionRef} className="glass-card" style={{ padding: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
+          <h3 style={{ fontSize: "1.1rem", lineHeight: "1.6", margin: 0 }}>{q.questionText}</h3>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", marginTop: "4px" }}>
+            残り {questions.length} 問
+          </span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
+          {options.map((opt: string, i: number) => {
+            const displayOpt = /^[1-5１-５][\.．\s]/.test(opt) ? opt : `${i + 1}. ${opt}`;
+            return (
+            <label
+              key={i}
+              style={{
+                padding: "1rem",
+                border: `1px solid ${selectedOption === i ? "var(--primary-color)" : "var(--border-color)"}`,
+                borderRadius: "var(--btn-border-radius)",
+                cursor: "pointer",
+                background: selectedOption === i ? "rgba(59, 130, 246, 0.1)" : "transparent",
+                transition: "all 0.2s",
+              }}
+            >
+              <input
+                type="radio"
+                name="weakness-option"
+                style={{ marginRight: "0.5rem" }}
+                onChange={() => setSelectedOptionById((prev) => ({ ...prev, [q.id]: i }))}
+                checked={selectedOption === i}
+                disabled={loadingExp || submittingReview}
+              />
+              {displayOpt}
+            </label>
+          )})}
+        </div>
+
+        {!explanation ? (
+          <button
+            className="btn btn-primary"
+            style={{ width: "100%", height: "3.5rem" }}
+            disabled={selectedOption === null || loadingExp || submittingReview}
+            onClick={handleSubmit}
+          >
+            {loadingExp ? "解説を生成中..." : "解答と解説を確認する"}
+          </button>
+        ) : (
+          <div className="animate-fade-in">
+            <h4 style={{ color: "var(--success-color)", margin: "1rem 0 0.5rem 0", fontSize: "1.05rem" }}>
+              e-Gov 根拠に基づく解説
+            </h4>
+            <div
+              style={{
+                marginBottom: "1.5rem",
+                background: "rgba(0,0,0,0.3)",
+                padding: "1rem",
+                borderRadius: "8px",
+                fontSize: "0.95rem",
+                lineHeight: "1.6",
+                borderLeft: "4px solid var(--accent-color)",
+              }}
+              className="markdown-body"
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
+            </div>
+
+            <h4 style={{ textAlign: "center", marginBottom: "1rem", fontSize: "1rem" }}>この問題の理解度はどうでしたか？</h4>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+              {[
+                { score: 0, label: "忘れた (0)" },
+                { score: 2, label: "難しい (2)" },
+                { score: 4, label: "普通 (4)" },
+                { score: 5, label: "簡単 (5)" },
+              ].map((btn) => (
+                <button
+                  key={btn.score}
+                  className="btn btn-outline"
+                  onClick={() => handleReview(btn.score)}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? "保存中..." : btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="glass-card" style={{ padding: "1rem" }}>
         <h4 style={{ fontSize: "1rem", margin: "0 0 0.75rem 0" }}>一覧（クリックして選択）</h4>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -136,7 +224,12 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
                   whiteSpace: "normal",
                   lineHeight: "1.4",
                 }}
-                onClick={() => setSelectedQuestionId(item.id)}
+                onClick={() => {
+                  setSelectedQuestionId(item.id);
+                  setTimeout(() => {
+                    questionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 50);
+                }}
                 disabled={submittingReview}
               >
                 {idx + 1}. {item.questionText}
@@ -146,92 +239,7 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
         </div>
       </div>
 
-      <div className="glass-card" style={{ padding: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
-        <h3 style={{ fontSize: "1.1rem", lineHeight: "1.6", margin: 0 }}>{q.questionText}</h3>
-        <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", marginTop: "4px" }}>
-          残り {questions.length} 問
-        </span>
-      </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
-        {options.map((opt: string, i: number) => {
-          const displayOpt = /^[1-5１-５][\.．\s]/.test(opt) ? opt : `${i + 1}. ${opt}`;
-          return (
-          <label
-            key={i}
-            style={{
-              padding: "1rem",
-              border: `1px solid ${selectedOption === i ? "var(--primary-color)" : "var(--border-color)"}`,
-              borderRadius: "var(--btn-border-radius)",
-              cursor: "pointer",
-              background: selectedOption === i ? "rgba(59, 130, 246, 0.1)" : "transparent",
-              transition: "all 0.2s",
-            }}
-          >
-            <input
-              type="radio"
-              name="weakness-option"
-              style={{ marginRight: "0.5rem" }}
-              onChange={() => setSelectedOptionById((prev) => ({ ...prev, [q.id]: i }))}
-              checked={selectedOption === i}
-              disabled={loadingExp || submittingReview}
-            />
-            {displayOpt}
-          </label>
-        )})}
-      </div>
-
-      {!explanation ? (
-        <button
-          className="btn btn-primary"
-          style={{ width: "100%", height: "3.5rem" }}
-          disabled={selectedOption === null || loadingExp || submittingReview}
-          onClick={handleSubmit}
-        >
-          {loadingExp ? "解説を生成中..." : "解答と解説を確認する"}
-        </button>
-      ) : (
-        <div className="animate-fade-in">
-          <h4 style={{ color: "var(--success-color)", margin: "1rem 0 0.5rem 0", fontSize: "1.05rem" }}>
-            e-Gov 根拠に基づく解説
-          </h4>
-          <div
-            style={{
-              marginBottom: "1.5rem",
-              background: "rgba(0,0,0,0.3)",
-              padding: "1rem",
-              borderRadius: "8px",
-              fontSize: "0.95rem",
-              lineHeight: "1.6",
-              borderLeft: "4px solid var(--accent-color)",
-            }}
-            className="markdown-body"
-          >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
-          </div>
-
-          <h4 style={{ textAlign: "center", marginBottom: "1rem", fontSize: "1rem" }}>この問題の理解度はどうでしたか？</h4>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-            {[
-              { score: 0, label: "忘れた (0)" },
-              { score: 2, label: "難しい (2)" },
-              { score: 4, label: "普通 (4)" },
-              { score: 5, label: "簡単 (5)" },
-            ].map((btn) => (
-              <button
-                key={btn.score}
-                className="btn btn-outline"
-                onClick={() => handleReview(btn.score)}
-                disabled={submittingReview}
-              >
-                {submittingReview ? "保存中..." : btn.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
     </div>
   );
 }
