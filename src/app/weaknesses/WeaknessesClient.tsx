@@ -9,6 +9,7 @@ type WeakQuestion = {
   questionText: string;
   optionsJson: string;
   explanation?: string | null;
+  correctAnswer?: string | null;
 };
 
 export default function WeaknessesClient({ initialQuestions }: { initialQuestions: WeakQuestion[] }) {
@@ -18,6 +19,8 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   const [explanationById, setExplanationById] = useState<Record<string, string | null>>({});
   const [loadingExpById, setLoadingExpById] = useState<Record<string, boolean>>({});
   const [submittingReviewById, setSubmittingReviewById] = useState<Record<string, boolean>>({});
+  const [userResultById, setUserResultById] = useState<Record<string, { isCorrect: boolean; correctAnswer: string } | null>>({});
+  const [progressById, setProgressById] = useState<Record<string, number>>({});
   const questionRef = useRef<HTMLDivElement>(null);
 
   const q = useMemo(() => {
@@ -36,11 +39,34 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   }, [q]);
 
   const handleSubmit = async () => {
-    if (!q) return;
     const selectedOption = selectedOptionById[q.id] ?? null;
     if (selectedOption === null) return;
 
+    // もしすでに保存された正解・解説がある場合はそれを使う
+    if (q.explanation && q.correctAnswer) {
+      setExplanationById(prev => ({ ...prev, [q.id]: q.explanation || "" }));
+      setUserResultById(prev => ({ 
+        ...prev, 
+        [q.id]: {
+          isCorrect: q.correctAnswer === (selectedOption + 1).toString(),
+          correctAnswer: q.correctAnswer || "?"
+        } 
+      }));
+      return;
+    }
+
     setLoadingExpById((prev) => ({ ...prev, [q.id]: true }));
+    setProgressById(prev => ({ ...prev, [q.id]: 0 }));
+    
+    // プログレスバーの擬似アニメーション
+    const interval = setInterval(() => {
+      setProgressById(prev => {
+        const p = prev[q.id] || 0;
+        if (p < 90) return { ...prev, [q.id]: p + 2 };
+        return prev;
+      });
+    }, 200);
+
     try {
       const res = await fetch("/api/explanation", {
         method: "POST",
@@ -58,11 +84,20 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
         ...prev,
         [q.id]: data.explanation || "解説を生成できませんでした。",
       }));
+      setUserResultById((prev) => ({
+        ...prev,
+        [q.id]: {
+          isCorrect: data.correctAnswer === (selectedOption + 1).toString(),
+          correctAnswer: data.correctAnswer || "?"
+        }
+      }));
     } catch (e: any) {
       console.error(e);
       alert(`エラー: ${e.message}`);
     } finally {
+      clearInterval(interval);
       setLoadingExpById((prev) => ({ ...prev, [q.id]: false }));
+      setProgressById(prev => ({ ...prev, [q.id]: 100 }));
     }
   };
 
@@ -100,6 +135,8 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   const explanation = q ? explanationById[q.id] ?? null : null;
   const loadingExp = q ? !!loadingExpById[q.id] : false;
   const submittingReview = q ? !!submittingReviewById[q.id] : false;
+  const userResult = q ? userResultById[q.id] : null;
+  const progress = q ? progressById[q.id] || 0 : 0;
 
   if (!questions || questions.length === 0) {
     return (
@@ -157,16 +194,52 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
         </div>
 
         {!explanation ? (
-          <button
-            className="btn btn-primary"
-            style={{ width: "100%", height: "3.5rem" }}
-            disabled={selectedOption === null || loadingExp || submittingReview}
-            onClick={handleSubmit}
-          >
-            {loadingExp ? "解説を生成中..." : "解答と解説を確認する"}
-          </button>
-        ) : (
-          <div className="animate-fade-in">
+        <button
+          className="btn btn-primary"
+          style={{ width: "100%", height: "3.5rem", position: "relative", overflow: "hidden" }}
+          disabled={selectedOption === null || loadingExp || submittingReview}
+          onClick={handleSubmit}
+        >
+          {loadingExp && (
+            <div style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${progress}%`,
+              background: "rgba(255, 255, 255, 0.2)",
+              transition: "width 0.2s linear"
+            }} />
+          )}
+          <span style={{ position: "relative", zIndex: 1 }}>
+            {loadingExp ? `解説を生成中... ${Math.floor(progress)}%` : q.explanation ? "解答と解説を確認する（保存済み）" : "解答と解説を確認する"}
+          </span>
+        </button>
+      ) : (
+        <div className="animate-fade-in">
+          {userResult && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "1rem", 
+              marginBottom: "1.5rem", 
+              borderRadius: "12px", 
+              fontSize: "1.2rem", 
+              fontWeight: "bold",
+              background: userResult.isCorrect ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
+              border: `2px solid ${userResult.isCorrect ? "var(--success-color)" : "rgba(239, 68, 68, 1)"}`,
+              color: userResult.isCorrect ? "var(--success-color)" : "rgba(239, 68, 68, 1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem"
+            }}>
+              {userResult.isCorrect ? (
+                <><span>⭕</span> 正解です！</>
+              ) : (
+                <><span>❌</span> 不正解（正解は選択肢 {userResult.correctAnswer}）</>
+              )}
+            </div>
+          )}
             <h4 style={{ color: "var(--success-color)", margin: "1rem 0 0.5rem 0", fontSize: "1.05rem" }}>
               e-Gov 根拠に基づく解説
             </h4>
