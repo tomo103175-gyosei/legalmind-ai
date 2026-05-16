@@ -39,6 +39,7 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   }, [q]);
 
   const handleSubmit = async () => {
+    if (!q) return;
     const selectedOption = selectedOptionById[q.id] ?? null;
     if (selectedOption === null) return;
 
