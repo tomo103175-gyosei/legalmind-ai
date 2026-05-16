@@ -212,6 +212,7 @@ export default function StudyPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          questionId: q.id,
           questionText: q.questionText,
           previousExplanation: explanation,
           userMessage: msg,
@@ -220,6 +221,26 @@ export default function StudyPage() {
       });
       const data = await res.json();
       setFollowUps(prev => [...prev, { role: 'ai', text: data.answer || data.error }]);
+
+      // AIが正解・解説の更新を返してきた場合、画面の状態を更新する
+      if (data.updatedExplanation || data.updatedCorrectAnswer) {
+        if (data.updatedExplanation) setExplanation(data.updatedExplanation);
+        
+        // ユーザーの正誤判定も再計算する
+        setUserResult(prev => {
+          if (!prev) return null;
+          const newCorrect = data.updatedCorrectAnswer || prev.correctAnswer;
+          const isCorrectNow = newCorrect === (selectedOption! + 1).toString();
+          return { isCorrect: isCorrectNow, correctAnswer: newCorrect };
+        });
+
+        // キャッシュも更新
+        setQuestions(prevQ => prevQ.map(item => item.id === q.id ? { 
+          ...item, 
+          explanation: data.updatedExplanation || item.explanation,
+          correctAnswer: data.updatedCorrectAnswer || item.correctAnswer
+        } : item));
+      }
     } catch (e) {
       console.error(e);
       setFollowUps(prev => [...prev, { role: 'ai', text: "エラー: 回答を取得できませんでした。" }]);
@@ -291,7 +312,9 @@ export default function StudyPage() {
           <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>{q.questionText}</h2>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
-            {options.map((opt: string, i: number) => (
+            {options.map((opt: string, i: number) => {
+              const displayOpt = /^[1-5１-５][\.．\s]/.test(opt) ? opt : `${i + 1}. ${opt}`;
+              return (
               <label 
                 key={i} 
                 style={{ 
@@ -310,9 +333,9 @@ export default function StudyPage() {
                   onChange={() => setSelectedOption(i)} 
                   checked={selectedOption === i} 
                 />
-                {opt}
+                {displayOpt}
               </label>
-            ))}
+            )})}
           </div>
 
           {!explanation ? (
@@ -507,9 +530,10 @@ export default function StudyPage() {
                       <div style={{ marginBottom: "1rem" }}>
                         <div style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>選択肢</div>
                         <ul style={{ paddingLeft: "1.2rem", lineHeight: "1.5" }}>
-                          {itemOptions.map((opt, idx) => (
-                            <li key={idx}>{opt}</li>
-                          ))}
+                          {itemOptions.map((opt, idx) => {
+                            const displayOpt = /^[1-5１-５][\.．\s]/.test(opt) ? opt : `${idx + 1}. ${opt}`;
+                            return <li key={idx}>{displayOpt}</li>;
+                          })}
                         </ul>
                       </div>
                     )}

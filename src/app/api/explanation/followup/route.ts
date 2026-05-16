@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { questionText, previousExplanation, userMessage, chatHistory } = await req.json();
+    const { questionId, questionText, previousExplanation, userMessage, chatHistory } = await req.json();
 
     if (!questionText || !previousExplanation || !userMessage) {
       return NextResponse.json({ error: "Missing required context." }, { status: 400 });
@@ -65,16 +65,49 @@ export async function POST(req: Request) {
     
     上記を踏まえ、丁寧かつ正確に回答してください。
     もし以前の解説が間違っていた場合は素直に認め、日本の法律（e-GovのURLを含む）に基づいて訂正された正確な解説を提供してください。
-    長文テキスト形式で出力し、クイズ形式は絶対に避けてください。
+    
+    出力は以下のJSONフォーマットに厳密に従ってください。
+    {
+      "answer": "ユーザーへの返答テキスト（誤りを認めた場合はそのお詫びと解説）",
+      "shouldUpdateCorrectAnswer": true/false (以前の正解番号や解説に間違いがあり、修正すべき場合はtrue),
+      "newCorrectAnswer": "新しい正解の番号（数値のみ、例: 3）。修正しない場合や不明な場合はnull",
+      "newExplanation": "修正後の新しい全体解説テキスト（e-Gov条文URL等を含む完全版）。修正しない場合はnull"
+    }
     `;
 
     const response = await ai.models.generateContent({
       model: selectedModel,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 8192 }
+      config: { 
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json"
+      }
     });
 
-    return NextResponse.json({ answer: response.text || "返答を生成できませんでした。" });
+    const responseText = response.text || "{}";
+    let jsonData: any = {};
+    try {
+      jsonData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("JSON Parse Error in Followup API:", e, responseText);
+      jsonData = { answer: responseText, shouldUpdateCorrectAnswer: false };
+    }
+
+    if (jsonData.shouldUpdateCorrectAnswer && questionId) {
+      await prisma.question.update({
+        where: { id: questionId },
+        data: {
+          ...(jsonData.newCorrectAnswer !== null ? { correctAnswer: String(jsonData.newCorrectAnswer) } : {}),
+          ...(jsonData.newExplanation !== null ? { explanation: jsonData.newExplanation } : {})
+        }
+      });
+    }
+
+    return NextResponse.json({ 
+      answer: jsonData.answer || "返答を生成できませんでした。",
+      updatedCorrectAnswer: jsonData.shouldUpdateCorrectAnswer ? jsonData.newCorrectAnswer : undefined,
+      updatedExplanation: jsonData.shouldUpdateCorrectAnswer ? jsonData.newExplanation : undefined
+    });
   } catch (error: any) {
     console.error("Follow-up Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

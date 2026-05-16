@@ -155,7 +155,9 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
-        {options.map((opt: string, i: number) => (
+        {options.map((opt: string, i: number) => {
+          const displayOpt = /^[1-5１-５][\.．\s]/.test(opt) ? opt : `${i + 1}. ${opt}`;
+          return (
           <label
             key={i}
             style={{
@@ -175,9 +177,9 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
               checked={selectedOption === i}
               disabled={loadingExp || submittingReview}
             />
-            {opt}
+            {displayOpt}
           </label>
-        ))}
+        )})}
       </div>
 
       {!explanation ? (
