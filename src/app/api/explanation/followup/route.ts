@@ -32,14 +32,13 @@ export async function POST(req: Request) {
     }
     // Premium is unlimited (removing the 3-turn limit)
 
-    // 常に精度の高い gemini-2.5-flash を使用
     const selectedModel = "gemini-2.5-flash";
-    console.log(`[Follow-up Model Selection] accuracy-priority -> Using ${selectedModel}`);
+    const currentDate = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // Build the conversation context
     let prompt = `
       あなたは行政書士試験に特化した、法務のプロフェッショナルAIアシスタントです。
-      ユーザーの質問に対し、日本の法令（e-Gov）および最高裁判例に基づいた、極めて正確な回答を提供してください。
+      本日は ${currentDate} です。ユーザーの質問に対し、現時点で施行されている最新の日本の法令（e-Gov）および最新の最高裁判例に基づいた、極めて正確な回答を提供してください。
 
       【対象の問題】
       "${questionText}"
@@ -47,10 +46,12 @@ export async function POST(req: Request) {
       【以前の解説】
       "${previousExplanation}"
 
-      【絶対遵守のルール（ハルシネーション対策）】
-      1. 条文番号（第〇条第〇項）の捏造は厳禁です。確証がない場合はその旨を伝え、不正確な情報を教えないでください。
-      2. 行政書士試験に関連しない質問には「行政書士試験に関連する質問のみお答えできます。」と返答してください。
-      3. 回答には必ず具体的な法律名（例：行政手続法、民法など）を含めてください。
+      【絶対遵守のルール（ハルシネーション・旧法参照対策）】
+      1. 【最優先】最新の改正内容を反映：民法、行政法、会社法などの改正に細心の注意を払い、必ず現行法に基づいて回答してください。
+      2. 条文番号（第〇条第〇項）の捏造は厳禁です。確証がない場合はその旨を伝え、不正確な情報を教えないでください。
+      3. 行政書士試験に関連しない質問には「行政書士試験に関連する質問のみお答えできます。」と返答してください。
+      4. 回答には必ず具体的な法律名（例：行政手続法、民法など）を含めてください。
+      5. もし「以前の解説」が最新の法令に照らして間違っている、あるいは古い条文に基づいている場合は、素直に非を認め、正しい最新の解説を提供してください。
       
       【これまでの会話履歴（ある場合）】:
     `;
@@ -64,14 +65,14 @@ export async function POST(req: Request) {
     prompt += `\n\n今回のユーザーの質問/指摘: "${userMessage}"
     
     上記を踏まえ、丁寧かつ正確に回答してください。
-    もし以前の解説が間違っていた場合は素直に認め、日本の法律（e-GovのURLを含む）に基づいて訂正された正確な解説を提供してください。
+    もし以前の解説が間違っていた場合は、日本の法律（e-GovのURLを含む）に基づいて訂正された正確な解説を提供してください。
     
     出力は以下のJSONフォーマットに厳密に従ってください。
     {
-      "answer": "ユーザーへの返答テキスト（誤りを認めた場合はそのお詫びと解説）",
+      "answer": "ユーザーへの返答テキスト（誤りを認めた場合はそのお詫びと修正箇所の説明）",
       "shouldUpdateCorrectAnswer": true/false (以前の正解番号や解説に間違いがあり、修正すべき場合はtrue),
       "newCorrectAnswer": "新しい正解の番号（数値のみ、例: 3）。修正しない場合や不明な場合はnull",
-      "newExplanation": "修正後の新しい全体解説テキスト（e-Gov条文URL等を含む完全版）。修正しない場合はnull"
+      "newExplanation": "修正後の新しい全体解説テキスト（e-Gov最新条文URL等を含む完全版）。修正しない場合はnull"
     }
     `;
 

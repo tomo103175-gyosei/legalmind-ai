@@ -259,7 +259,14 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
               }}
               className="markdown-body"
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{explanation}</ReactMarkdown>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }} />
+                }}
+              >
+                {explanation}
+              </ReactMarkdown>
             </div>
 
             <h4 style={{ textAlign: "center", marginBottom: "1rem", fontSize: "1rem" }}>この問題の理解度はどうでしたか？</h4>
