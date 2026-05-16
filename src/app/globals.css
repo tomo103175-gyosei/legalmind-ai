@@ -39,6 +39,11 @@ html, body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -138,6 +143,23 @@ a:hover {
 .markdown-body {
   font-family: inherit;
   color: inherit;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.markdown-body pre, .markdown-body code {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100%;
+}
+.markdown-body table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.markdown-body p, .markdown-body a, .markdown-body li {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
