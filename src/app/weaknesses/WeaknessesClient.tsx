@@ -58,14 +58,18 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
     setLoadingExpById((prev) => ({ ...prev, [q.id]: true }));
     setProgressById(prev => ({ ...prev, [q.id]: 0 }));
     
-    // プログレスバーの擬似アニメーション
+    // プログレスバーの擬似アニメーション (合計40秒)
     const interval = setInterval(() => {
       setProgressById(prev => {
         const p = prev[q.id] || 0;
-        if (p < 90) return { ...prev, [q.id]: p + 2 };
-        return prev;
+        let nextP = p;
+        if (p < 60) nextP = p + 0.4;      // 15秒で60%
+        else if (p < 85) nextP = p + 0.16; // 15秒で25%
+        else if (p < 95) nextP = p + 0.1;  // 10秒で10%
+        else nextP = 95;
+        return { ...prev, [q.id]: nextP };
       });
-    }, 200);
+    }, 100);
 
     try {
       const res = await fetch("/api/explanation", {
