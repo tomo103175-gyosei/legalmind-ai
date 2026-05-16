@@ -163,12 +163,13 @@ export default function WeaknessesClient({ initialQuestions }: { initialQuestion
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <div ref={questionRef} className="glass-card" style={{ padding: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
-          <h3 style={{ fontSize: "1.1rem", lineHeight: "1.6", margin: 0 }}>{q.questionText}</h3>
-          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", whiteSpace: "nowrap", marginTop: "4px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.85rem", color: "var(--primary-color)", fontWeight: "bold" }}>問題</span>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
             残り {questions.length} 問
           </span>
         </div>
+        <h3 style={{ fontSize: "1.1rem", lineHeight: "1.6", margin: "0 0 1.25rem 0" }}>{q.questionText}</h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
           {options.map((opt: string, i: number) => {
