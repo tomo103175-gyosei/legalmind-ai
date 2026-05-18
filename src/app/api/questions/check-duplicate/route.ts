@@ -109,7 +109,7 @@ ${mostSimilarQuestion?.questionText}
     `.trim();
 
     const proResponse = await ai.models.generateContent({
-      model: "gemini-2.5-pro-preview-05-06",
+      model: "gemma-4-31b-it",
       contents: proPrompt,
     });
 

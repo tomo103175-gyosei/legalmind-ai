@@ -37,8 +37,8 @@ export async function POST(req: Request) {
     const isPrecedent = precedentKeywords.some(k => questionText.includes(k));
     const isComplex = complexKeywords.some(k => questionText.includes(k));
     
-    // 解説には常に精度の高い gemini-2.5-flash を使用
-    const selectedModel = "gemini-2.5-flash";
+    // 最新の Gemma 4 高精度モデル（31B IT）を使用
+    const selectedModel = "gemma-4-31b-it";
 
     console.log(`[Model Selection] Plan: ${userPlan}, accuracy-priority -> Using ${selectedModel}`);
 

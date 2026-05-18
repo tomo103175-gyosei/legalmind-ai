@@ -30,9 +30,8 @@ export async function POST(req: Request) {
     if (userPlan === "FREE" && userMessageCount >= 1) {
       return NextResponse.json({ error: "無料プランのチャット制限（1回）に到達しました。プレミアムプランで無制限に質問できます。" }, { status: 403 });
     }
-    // Premium is unlimited (removing the 3-turn limit)
-
-    const selectedModel = "gemini-2.5-flash";
+    // チャットの対話レスポンス速度を高めるため、高速な Gemma 4 MoE モデル（26B A4B IT）を使用
+    const selectedModel = "gemma-4-26b-a4b-it";
     const currentDate = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // Build the conversation context
